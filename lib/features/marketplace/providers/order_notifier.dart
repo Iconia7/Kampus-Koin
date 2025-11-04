@@ -2,14 +2,17 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kampus_koin_app/core/api/api_service.dart';
+import 'package:kampus_koin_app/core/models/order_model.dart';
 import 'package:kampus_koin_app/features/home/providers/user_data_provider.dart';
 import 'package:kampus_koin_app/features/marketplace/providers/products_provider.dart';
+import 'package:kampus_koin_app/features/profile/providers/orders_provider.dart';
 
 // State for the order creation process
 class OrderState {
   final bool isLoading;
   final String? errorMessage;
-  OrderState({this.isLoading = false, this.errorMessage});
+  final Order? createdOrder;
+  OrderState({this.isLoading = false, this.errorMessage,this.createdOrder,});
 }
 
 // We use StateNotifierProvider because we'll have multiple loading states
@@ -26,30 +29,37 @@ class OrderNotifier extends StateNotifier<Map<int, OrderState>> {
 
   OrderNotifier(this._apiService, this._ref) : super({});
 
-  Future<bool> unlockProduct(int productId) async {
-    // Set loading state for this specific product
-    state = {...state, productId: OrderState(isLoading: true)};
-
+  Future<Order?> unlockProduct(int productId) async {
+    state = { ...state, productId: OrderState(isLoading: true) };
     try {
-      await _apiService.unlockProduct(productId);
-
-      // Clear loading state on success
-      state = {...state, productId: OrderState(isLoading: false)};
-
-      // --- REFRESH DATA ---
-      // 1. Refresh the product list (isUnlocked might change)
-      _ref.invalidate(productsProvider);
-      // 2. Refresh the user's data (Koin Score might change)
-      _ref.invalidate(userDataProvider);
-
-      return true; // Success
-    } catch (e) {
-      // Set error state for this product
+      final newOrder = await _apiService.unlockProduct(productId);
+      
       state = {
         ...state,
-        productId: OrderState(isLoading: false, errorMessage: e.toString()),
+        productId: OrderState(isLoading: false, createdOrder: newOrder) // <-- SET THE ORDER
       };
-      return false; // Failure
+      
+      // Refresh data
+      _ref.invalidate(productsProvider);
+      _ref.invalidate(userDataProvider);
+      _ref.invalidate(ordersProvider); // Invalidate profile orders too
+      
+      return newOrder; // <-- RETURN THE ORDER
+      
+    } catch (e) {
+      state = {
+        ...state,
+        productId: OrderState(isLoading: false, errorMessage: e.toString())
+      };
+      return null; // <-- Return null on failure
     }
+  }
+
+  // --- ADD A METHOD TO CLEAR THE STATE ---
+  void clearOrderState(int productId) {
+    state = {
+      ...state,
+      productId: OrderState() // Reset to initial
+    };
   }
 }

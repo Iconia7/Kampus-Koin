@@ -1,15 +1,18 @@
 // lib/core/models/order_model.dart
 
+import 'package:kampus_koin_app/core/models/product_model.dart';
+
 class Order {
   final int id;
   final int user;
-  final String product;
+  final Product product;
   final double totalAmount;
   final double downPayment;
   final double amountFinanced;
   final double amountPaid; // <-- FIELD ADDED
   final String status;
   final DateTime orderDate;
+  final String pickupQrCode;
 
   Order({
     required this.id,
@@ -21,13 +24,14 @@ class Order {
     required this.amountPaid, // <-- FIELD ADDED
     required this.status,
     required this.orderDate,
+    required this.pickupQrCode
   });
 
   factory Order.fromJson(Map<String, dynamic> json) {
     return Order(
       id: json['id'],
       user: json['user'],
-      product: json['product'] ?? 'Unknown Product', // <-- NULL SAFETY
+      product: Product.fromJson(json['product']), // <-- NULL SAFETY
       totalAmount: double.parse(
         json['total_amount'] ?? '0.0',
       ), // <-- NULL SAFETY
@@ -41,7 +45,8 @@ class Order {
       status: json['status'] ?? 'PENDING', // <-- NULL SAFETY
       orderDate: DateTime.parse(
         json['order_date'],
-      ), // This one should always exist
+      ),
+      pickupQrCode: json['pickup_qr_code'], // This one should always exist
     );
   }
 }

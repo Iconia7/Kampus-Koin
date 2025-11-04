@@ -14,7 +14,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 // In development, this is usually your local IP or ngrok URL
 // IMPORTANT: Replace with your actual local IP or ngrok URL if not using standard localhost
 const String baseUrl =
-    'http://192.168.0.107:8000/api'; // 10.0.2.2 is the special IP for Android emulator to reach localhost
+    'http://10.5.51.30:8000/api'; // 10.0.2.2 is the special IP for Android emulator to reach localhost
 
 // Create a Riverpod provider for easy access to the ApiService
 final apiServiceProvider = Provider<ApiService>((ref) {
@@ -26,33 +26,75 @@ class ApiService {
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
 
   ApiService() : _dio = Dio(BaseOptions(baseUrl: baseUrl)) {
-    // --- ADD THIS INTERCEPTOR ---
+
     _dio.interceptors.add(
       QueuedInterceptorsWrapper(
+
+        // --- 1. ATTACH TOKEN TO (ALMOST) EVERY REQUEST ---
         onRequest: (options, handler) async {
           // Public routes that don't need a token
-          if (options.path == '/token/' || options.path == '/users/register/') {
+          if (options.path == '/token/' || 
+              options.path == '/token/refresh/' || 
+              options.path == '/users/register/') {
             return handler.next(options); // Continue without a token
           }
 
-          // Get the token from secure storage
           final token = await _secureStorage.read(key: 'accessToken');
           if (token != null) {
-            // Add the token to the header
             options.headers['Authorization'] = 'Bearer $token';
           }
-          return handler.next(options); // Continue with the request
+          return handler.next(options);
         },
+
+        // --- 2. HANDLE TOKEN EXPIRY (401 ERROR) ---
         onError: (e, handler) async {
-          // --- Optional: Handle 401 Unauthorized (e.g., refresh token) ---
-          // For now, we'll just pass the error along
-          return handler.next(e);
+          if (e.response?.statusCode == 401) {
+            print("Token expired. Attempting refresh...");
+
+            // Get the old refresh token
+            final refreshToken = await _secureStorage.read(key: 'refreshToken');
+            if (refreshToken == null) {
+              // If we have no refresh token, log out
+              handler.next(e);
+              // We should also tell the authNotifier to log out
+              return;
+            }
+
+            try {
+              // --- 3. REQUEST NEW TOKENS ---
+              final response = await _dio.post(
+                '/token/refresh/',
+                data: {'refresh': refreshToken},
+              );
+
+              if (response.statusCode == 200) {
+                // Successfully got new tokens
+                final newAccessToken = response.data['access'];
+
+                // Save new token
+                await _secureStorage.write(key: 'accessToken', value: newAccessToken);
+
+                // --- 4. RETRY THE ORIGINAL, FAILED REQUEST ---
+                // Update the request header with the new token
+                e.requestOptions.headers['Authorization'] = 'Bearer $newAccessToken';
+
+                // Re-send the original request
+                final retriedResponse = await _dio.fetch(e.requestOptions);
+                return handler.resolve(retriedResponse);
+              }
+            } on DioException {
+              // If the refresh token is also invalid, we must log out
+              print("Refresh token is invalid. Logging out.");
+              await _secureStorage.deleteAll();
+              // We should tell the authNotifier to log out
+              // This is tricky from here, the router's redirect will handle it
+            }
+          }
+          return handler.next(e); // Pass on other errors
         },
       ),
     );
-    // ----------------------------
   }
-
   // --- AUTH METHODS ---
 
   // Method to handle user login

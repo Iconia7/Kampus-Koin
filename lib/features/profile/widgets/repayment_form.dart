@@ -92,14 +92,17 @@ class _RepaymentFormState extends ConsumerState<RepaymentForm> {
               keyboardType: TextInputType.number,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
               validator: (value) {
-                if (value == null || value.isEmpty)
+                if (value == null || value.isEmpty) {
                   return 'Please enter an amount';
-                if (double.tryParse(value) == null)
+                }
+                if (double.tryParse(value) == null) {
                   return 'Please enter a valid number';
+                }
                 final amount = double.parse(value);
                 if (amount <= 0) return 'Amount must be greater than zero';
-                if (amount > widget.amountDue)
+                if (amount > widget.amountDue) {
                   return 'Amount cannot be greater than the amount due';
+                }
                 return null;
               },
             ),

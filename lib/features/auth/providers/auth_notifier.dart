@@ -30,6 +30,18 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   AuthNotifier(this._apiService) : super(AuthState());
 
+  Future<void> checkAuthStatus() async {
+    // Check secure storage for a token
+    final token = await _secureStorage.read(key: 'accessToken');
+    if (token != null) {
+      // If we have a token, we are (at least initially) authenticated
+      state = state.copyWith(status: AuthStatus.authenticated);
+    } else {
+      // No token, we are logged out
+      state = state.copyWith(status: AuthStatus.initial);
+    }
+  }
+
   Future<void> login(String email, String password) async {
     state = state.copyWith(status: AuthStatus.loading, errorMessage: null);
     try {
@@ -97,5 +109,5 @@ final authNotifierProvider = StateNotifierProvider<AuthNotifier, AuthState>((
   ref,
 ) {
   final apiService = ref.watch(apiServiceProvider);
-  return AuthNotifier(apiService);
+  return AuthNotifier(apiService)..checkAuthStatus();
 });

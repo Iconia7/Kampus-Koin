@@ -7,6 +7,9 @@ class Product {
   final double price;
   final int requiredKoinScore;
   final bool isUnlocked;
+  final bool isAlreadyUnlocked;
+  final String? vendorName;    // <-- ADD THIS
+  final String? vendorLocation;
 
   Product({
     required this.id,
@@ -15,6 +18,10 @@ class Product {
     required this.price,
     required this.requiredKoinScore,
     required this.isUnlocked,
+    required this.isAlreadyUnlocked,
+    this.vendorName,    // <-- ADD THIS
+    this.vendorLocation,
+    
   });
 
   factory Product.fromJson(Map<String, dynamic> json) {
@@ -26,6 +33,9 @@ class Product {
       price: double.parse(json['price']),
       requiredKoinScore: json['required_koin_score'],
       isUnlocked: json['is_unlocked'],
+      isAlreadyUnlocked: json['is_already_unlocked'],
+      vendorName: json['vendor_name'],    // <-- ADD THIS
+      vendorLocation: json['vendor_location'],
     );
   }
 }

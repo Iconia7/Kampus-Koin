@@ -3,10 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kampus_koin_app/core/models/goal_model.dart';
 import 'package:kampus_koin_app/features/goals/widgets/deposit_form.dart';
+import 'package:kampus_koin_app/features/home/providers/total_savings_provider.dart';
 import 'package:kampus_koin_app/features/home/providers/user_data_provider.dart';
 import '../../auth/providers/auth_notifier.dart';
 import 'package:kampus_koin_app/features/home/providers/goals_provider.dart';
 import 'package:intl/intl.dart';
+import 'dart:ui';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -14,38 +16,43 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final userData = ref.watch(userDataProvider);
-    final goalsData = ref.watch(goalsProvider); // Watch the goals provider
+    final goalsData = ref.watch(goalsProvider);
+    final totalSavings = ref.watch(totalSavingsProvider);
     final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
+    final currencyFormatter = NumberFormat.currency(locale: 'en_KE', symbol: 'KES ');
 
     return Scaffold(
+      backgroundColor: colorScheme.surface,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Dashboard'),
+        title: const Text('Dashboard', style: TextStyle(fontWeight: FontWeight.w600)),
         backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
-          IconButton(
-            icon: Icon(Icons.logout, color: colorScheme.primary),
-            onPressed: () {
-              ref.read(authNotifierProvider.notifier).logout();
-            },
+          Container(
+            margin: const EdgeInsets.only(right: 8),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: IconButton(
+              icon: Icon(Icons.logout_rounded, color: colorScheme.primary),
+              onPressed: () {
+                ref.read(authNotifierProvider.notifier).logout();
+              },
+            ),
           ),
         ],
       ),
-
       body: RefreshIndicator(
         onRefresh: () async {
-          // This will re-run both FutureProviders
           ref.invalidate(userDataProvider);
           ref.invalidate(goalsProvider);
         },
-        // We use a CustomScrollView to combine scrolling content
-        // with the RefreshIndicator
         child: CustomScrollView(
-          // This makes the refresh work even if content is small
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
-            // We use SliverToBoxAdapter to hold our non-list content
             SliverToBoxAdapter(
               child: userData.when(
                 loading: () => const Center(
@@ -57,85 +64,237 @@ class HomeScreen extends ConsumerWidget {
                 error: (err, stack) =>
                     Center(child: Text('Error: ${err.toString()}')),
                 data: (user) {
-                  return Padding(
-                    padding: const EdgeInsets.all(24.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Welcome Header
-                        Text(
-                          'Welcome back,',
-                          style: textTheme.bodyLarge?.copyWith(fontSize: 20),
-                        ),
-                        Text(
-                          user.name,
-                          style: textTheme.displayLarge?.copyWith(
-                            color: colorScheme.primary,
+                  return Stack(
+                    children: [
+                      // Gradient Background
+                      Container(
+                        height: 380,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              colorScheme.primary,
+                              colorScheme.primary.withOpacity(0.8),
+                              colorScheme.secondary,
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
                           ),
+                          borderRadius: const BorderRadius.only(
+      bottomLeft: Radius.circular(80),
+      bottomRight: Radius.circular(80),
+    ),
                         ),
-                        const SizedBox(height: 32),
-
-                        // Koin Score Card
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(20),
+                      ),
+                      // Decorative circles
+                      Positioned(
+                        top: -50,
+                        right: -50,
+                        child: Container(
+                          width: 200,
+                          height: 200,
                           decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                colorScheme.primary,
-                                colorScheme.secondary,
-                              ],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
+                            shape: BoxShape.circle,
+                            color: Colors.white.withOpacity(0.1),
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        top: 100,
+                        left: -30,
+                        child: Container(
+                          width: 150,
+                          height: 150,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.white.withOpacity(0.05),
+                          ),
+                        ),
+                      ),
+                      // Content
+                      Padding(
+                        padding: const EdgeInsets.all(24.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const SizedBox(height: 80),
+                            // Welcome Header
+                            Text(
+                              'Welcome back,',
+                              style: textTheme.bodyLarge?.copyWith(
+                                fontSize: 16,
+                                color: Colors.white.withOpacity(0.9),
+                              ),
                             ),
-                            borderRadius: BorderRadius.circular(20),
-                            boxShadow: [
-                              BoxShadow(
-                                color: colorScheme.primary.withOpacity(0.3),
-                                blurRadius: 15,
-                                offset: const Offset(0, 8),
+                            const SizedBox(height: 4),
+                            Text(
+                              user.name,
+                              style: textTheme.displayLarge?.copyWith(
+                                color: Colors.white,
+                                fontSize: 32,
+                                fontWeight: FontWeight.bold,
                               ),
-                            ],
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'YOUR KOIN SCORE',
-                                style: textTheme.bodyMedium?.copyWith(
-                                  color: Colors.white.withOpacity(0.8),
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 1.2,
+                            ),
+                            const SizedBox(height: 32),
+                            
+                            // Glassmorphic Stats Container
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(24),
+                              child: BackdropFilter(
+                                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                                child: Container(
+                                  padding: const EdgeInsets.all(24),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.15),
+                                    borderRadius: BorderRadius.circular(24),
+                                    border: Border.all(
+                                      color: Colors.white.withOpacity(0.2),
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Row(
+                                              children: [
+                                                Container(
+                                                  padding: const EdgeInsets.all(8),
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.white.withOpacity(0.2),
+                                                    borderRadius: BorderRadius.circular(20),
+                                                  ),
+                                                  child: const Icon(
+                                                    Icons.savings_rounded,
+                                                    color: Colors.white,
+                                                    size: 20,
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 12),
+                                                Text(
+                                                  'Total Savings',
+                                                  style: textTheme.bodyMedium?.copyWith(
+                                                    color: Colors.white.withOpacity(0.9),
+                                                    fontWeight: FontWeight.w500,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 12),
+                                            Text(
+                                              currencyFormatter.format(totalSavings),
+                                              style: textTheme.headlineLarge?.copyWith(
+                                                color: Colors.white,
+                                                fontSize: 28,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      Container(
+                                        width: 1,
+                                        height: 60,
+                                        color: Colors.white.withOpacity(0.3),
+                                      ),
+                                      const SizedBox(width: 24),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Row(
+                                              children: [
+                                                Container(
+                                                  padding: const EdgeInsets.all(8),
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.white.withOpacity(0.2),
+                                                    borderRadius: BorderRadius.circular(10),
+                                                  ),
+                                                  child: const Icon(
+                                                    Icons.stars_rounded,
+                                                    color: Colors.white,
+                                                    size: 20,
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 12),
+                                                Text(
+                                                  'Koin Score',
+                                                  style: textTheme.bodyMedium?.copyWith(
+                                                    color: Colors.white.withOpacity(0.9),
+                                                    fontWeight: FontWeight.w500,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 12),
+                                            Text(
+                                              user.koinScore.toString(),
+                                              style: textTheme.headlineLarge?.copyWith(
+                                                color: Colors.white,
+                                                fontSize: 28,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
-                              const SizedBox(height: 8),
-                              Text(
-                                user.koinScore.toString(),
-                                style: textTheme.displayLarge?.copyWith(
-                                  color: Colors.white,
-                                  fontSize: 48,
-                                  fontWeight: FontWeight.bold,
+                            ),
+                            
+                            const SizedBox(height: 72),
+                            
+                            // Section Header
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  'Savings Goals',
+                                  style: textTheme.headlineMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 22,
+                                  ),
                                 ),
-                              ),
-                            ],
-                          ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: colorScheme.primary.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: goalsData.when(
+                                    data: (goals) => Text(
+                                      '${goals.length} active',
+                                      style: textTheme.bodySmall?.copyWith(
+                                        color: colorScheme.primary,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    loading: () => const SizedBox(
+                                      width: 60,
+                                      child: Text('...'),
+                                    ),
+                                    error: (_, __) => const Text('0'),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                          ],
                         ),
-
-                        const SizedBox(height: 32),
-
-                        Text(
-                          'My Savings Goals',
-                          style: textTheme.headlineMedium,
-                        ),
-                        const SizedBox(height: 16),
-                      ],
-                    ),
+                      ),
+                    ],
                   );
                 },
               ),
             ),
 
-            // This is the list of goals
+            // Goals List
             goalsData.when(
               loading: () => const SliverToBoxAdapter(
                 child: Center(child: CircularProgressIndicator()),
@@ -145,23 +304,50 @@ class HomeScreen extends ConsumerWidget {
               ),
               data: (goals) {
                 if (goals.isEmpty) {
-                  return const SliverToBoxAdapter(
+                  return SliverToBoxAdapter(
                     child: Center(
                       child: Padding(
-                        padding: EdgeInsets.all(32.0),
-                        child: Text("You haven't created any goals yet."),
+                        padding: const EdgeInsets.all(32.0),
+                        child: Column(
+                          children: [
+                            Icon(
+                              Icons.flag_outlined,
+                              size: 64,
+                              color: Colors.grey[400],
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              "No goals yet",
+                              style: TextStyle(
+                                fontSize: 18,
+                                color: Colors.grey[600],
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              "Create your first savings goal to get started",
+                              style: TextStyle(
+                                color: Colors.grey[500],
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   );
                 }
-                // This is a scrolling list that is built efficiently
                 return SliverPadding(
                   padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
                   sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate((context, index) {
-                      final goal = goals[index];
-                      return GoalListItem(goal: goal);
-                    }, childCount: goals.length),
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                        final goal = goals[index];
+                        return GoalListItem(goal: goal);
+                      },
+                      childCount: goals.length,
+                    ),
                   ),
                 );
               },
@@ -173,7 +359,7 @@ class HomeScreen extends ConsumerWidget {
   }
 }
 
-// --- UPDATED WIDGET: GoalListItem ---
+// --- REDESIGNED GOAL ITEM ---
 class GoalListItem extends StatelessWidget {
   final Goal goal;
 
@@ -185,116 +371,188 @@ class GoalListItem extends StatelessWidget {
       locale: 'en_KE',
       symbol: 'Ksh ',
     );
-
-    // --- THIS IS THE NEW LOGIC ---
     final bool isComplete = goal.progress >= 1.0;
     final colorScheme = Theme.of(context).colorScheme;
-    // ----------------------------
+    final progressPercentage = (goal.progress * 100).toInt();
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
+            color: isComplete 
+                ? Colors.green.withOpacity(0.2)
+                : colorScheme.primary.withOpacity(0.1),
+            blurRadius: 15,
             offset: const Offset(0, 4),
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            goal.name,
-            style: Theme.of(
-              context,
-            ).textTheme.headlineMedium?.copyWith(fontSize: 18),
-          ),
-          const SizedBox(height: 12),
-          // Progress Bar
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: LinearProgressIndicator(
-              value: goal.progress,
-              minHeight: 10,
-              backgroundColor: colorScheme.background,
-              // --- UPDATE COLOR BASED ON COMPLETION ---
-              valueColor: AlwaysStoppedAnimation<Color>(
-                isComplete ? Colors.green : colorScheme.primary,
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          // Progress Text
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                currencyFormatter.format(goal.currentAmount),
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  // --- UPDATE COLOR BASED ON COMPLETION ---
-                  color: isComplete ? Colors.green : colorScheme.primary,
-                  fontWeight: FontWeight.bold,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Stack(
+          children: [
+            // Background Progress Indicator
+            Positioned(
+              left: 0,
+              top: 0,
+              bottom: 0,
+              child: Container(
+                width: MediaQuery.of(context).size.width * goal.progress,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: isComplete
+                        ? [Colors.green.withOpacity(0.1), Colors.green.withOpacity(0.05)]
+                        : [
+                            colorScheme.primary.withOpacity(0.1),
+                            colorScheme.primary.withOpacity(0.05),
+                          ],
+                  ),
                 ),
               ),
-              Text(
-                'of ${currencyFormatter.format(goal.targetAmount)}',
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-
-          // --- THIS IS THE UPDATED WIDGET ---
-          SizedBox(
-            width: double.infinity,
-            // Conditionally show the correct button
-            child: isComplete
-                ? ElevatedButton.icon(
-                    // Show a "Goal Complete" button
-                    icon: const Icon(Icons.check_circle),
-                    label: const Text('Goal Complete! 🎉'),
-                    onPressed: null, // This disables the button
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      disabledBackgroundColor: Colors.green.withOpacity(0.8),
-                      disabledForegroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  )
-                : OutlinedButton.icon(
-                    // Show the "Deposit" button
-                    icon: const Icon(Icons.add),
-                    label: const Text('Deposit Money'),
-                    onPressed: () {
-                      showModalBottomSheet(
-                        context: context,
-                        isScrollControlled: true,
-                        shape: const RoundedRectangleBorder(
-                          borderRadius: BorderRadius.vertical(
-                            top: Radius.circular(20),
-                          ),
+            ),
+            // Content
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              goal.name,
+                              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${currencyFormatter.format(goal.currentAmount)} of ${currencyFormatter.format(goal.targetAmount)}',
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          ],
                         ),
-                        builder: (ctx) =>
-                            DepositForm(goalId: goal.id, goalName: goal.name),
-                      );
-                    },
-                    style: OutlinedButton.styleFrom(
-                      side: BorderSide(color: colorScheme.primary),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
                       ),
-                    ),
+                      // Circular Progress
+                      SizedBox(
+                        width: 56,
+                        height: 56,
+                        child: Stack(
+                          children: [
+                            CircularProgressIndicator(
+                              value: goal.progress,
+                              strokeWidth: 5,
+                              backgroundColor: Colors.grey[200],
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                isComplete ? Colors.green : colorScheme.primary,
+                              ),
+                            ),
+                            Center(
+                              child: Text(
+                                '$progressPercentage%',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: isComplete ? Colors.green : colorScheme.primary,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-          ),
-          // ---------------------------------
-        ],
+                  const SizedBox(height: 16),
+                  
+                  // Action Button
+                  SizedBox(
+                    width: double.infinity,
+                    child: isComplete
+                        ? Container(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            decoration: BoxDecoration(
+                              color: Colors.green,
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(
+                                  Icons.check_circle_rounded,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Goal Complete! 🎉',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : ElevatedButton(
+                            onPressed: () {
+                              showModalBottomSheet(
+                                context: context,
+                                isScrollControlled: true,
+                                backgroundColor: Colors.transparent,
+                                builder: (ctx) => Container(
+                                  decoration: const BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.vertical(
+                                      top: Radius.circular(20),
+                                    ),
+                                  ),
+                                  child: DepositForm(
+                                    goalId: goal.id,
+                                    goalName: goal.name,
+                                  ),
+                                ),
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: colorScheme.primary,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              elevation: 0,
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: const [
+                                Icon(Icons.add_circle_outline, size: 20),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Add Deposit',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

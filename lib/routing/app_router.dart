@@ -2,11 +2,13 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:kampus_koin_app/core/models/order_model.dart';
 import 'package:kampus_koin_app/core/widgets/main_scaffold.dart';
 import 'package:kampus_koin_app/features/auth/providers/auth_notifier.dart';
 import 'package:kampus_koin_app/features/auth/screens/login_screen.dart';
 import 'package:kampus_koin_app/features/home/screens/home_screen.dart';
 import 'package:kampus_koin_app/features/marketplace/screens/marketplace_screen.dart';
+import 'package:kampus_koin_app/features/marketplace/screens/order_pickup_screen.dart';
 import 'package:kampus_koin_app/features/profile/screens/profile_screen.dart';
 import 'package:kampus_koin_app/features/auth/screens/register_screen.dart';
 // Import other screens as you create them (e.g., RegisterScreen)
@@ -76,6 +78,13 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/profile',
             builder: (context, state) => const ProfileScreen(),
           ),
+          GoRoute(
+        path: '/order-pickup',
+        builder: (context, state) {
+          final order = state.extra as Order; // Get the order object
+          return OrderPickupScreen(order: order);
+        },
+      ),
         ],
       ),
     ],
