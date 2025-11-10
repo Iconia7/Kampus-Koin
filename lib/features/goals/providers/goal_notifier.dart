@@ -3,6 +3,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kampus_koin_app/core/api/api_service.dart';
 import 'package:kampus_koin_app/features/home/providers/goals_provider.dart';
+import 'package:kampus_koin_app/features/home/providers/total_savings_provider.dart';
 
 // Simple state class for this notifier
 class GoalCreationState {
@@ -34,6 +35,24 @@ class GoalNotifier extends StateNotifier<GoalCreationState> {
         isLoading: false,
         errorMessage: "Failed to create goal.",
       );
+      return false; // Return failure
+    }
+  }
+  Future<bool> deleteGoal(int goalId) async {
+    // We can use the same state to show a global loading/error
+    state = GoalCreationState(isLoading: true);
+    try {
+      await _apiService.deleteGoal(goalId);
+      
+      // --- CRITICAL STEP ---
+      // Refresh both the goals list and the total savings
+      _ref.invalidate(goalsProvider);
+      _ref.invalidate(totalSavingsProvider);
+      
+      state = GoalCreationState(isLoading: false); // Reset state
+      return true; // Return success
+    } catch (e) {
+      state = GoalCreationState(isLoading: false, errorMessage: "Failed to delete goal.");
       return false; // Return failure
     }
   }

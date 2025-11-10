@@ -7,6 +7,7 @@ import 'package:kampus_koin_app/features/home/providers/total_savings_provider.d
 import 'package:kampus_koin_app/features/home/providers/user_data_provider.dart';
 import '../../auth/providers/auth_notifier.dart';
 import 'package:kampus_koin_app/features/home/providers/goals_provider.dart';
+import 'package:kampus_koin_app/features/goals/providers/goal_notifier.dart'; // <-- IMPORT
 import 'package:intl/intl.dart';
 import 'dart:ui';
 
@@ -20,13 +21,27 @@ class HomeScreen extends ConsumerWidget {
     final totalSavings = ref.watch(totalSavingsProvider);
     final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
-    final currencyFormatter = NumberFormat.currency(locale: 'en_KE', symbol: 'KES ');
+    final currencyFormatter =
+        NumberFormat.currency(locale: 'en_KE', symbol: 'KES ');
+
+    // Listen for errors from the goal notifier (for deletions)
+    ref.listen<GoalCreationState>(goalNotifierProvider, (prev, next) {
+      if (next.errorMessage != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(next.errorMessage!),
+            backgroundColor: colorScheme.error,
+          ),
+        );
+      }
+    });
 
     return Scaffold(
       backgroundColor: colorScheme.surface,
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Dashboard', style: TextStyle(fontWeight: FontWeight.w600)),
+        title:
+            const Text('Dashboard', style: TextStyle(fontWeight: FontWeight.w600)),
         backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
@@ -47,12 +62,18 @@ class HomeScreen extends ConsumerWidget {
       ),
       body: RefreshIndicator(
         onRefresh: () async {
+          // This will re-run all FutureProviders
           ref.invalidate(userDataProvider);
           ref.invalidate(goalsProvider);
+          // totalSavingsProvider will refresh automatically
         },
+        // We use a CustomScrollView to combine scrolling content
+        // with the RefreshIndicator
         child: CustomScrollView(
+          // This makes the refresh work even if content is small
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
+            // We use SliverToBoxAdapter to hold our non-list content
             SliverToBoxAdapter(
               child: userData.when(
                 loading: () => const Center(
@@ -80,9 +101,9 @@ class HomeScreen extends ConsumerWidget {
                             end: Alignment.bottomRight,
                           ),
                           borderRadius: const BorderRadius.only(
-      bottomLeft: Radius.circular(80),
-      bottomRight: Radius.circular(80),
-    ),
+                            bottomLeft: Radius.circular(80),
+                            bottomRight: Radius.circular(80),
+                          ),
                         ),
                       ),
                       // Decorative circles
@@ -135,12 +156,13 @@ class HomeScreen extends ConsumerWidget {
                               ),
                             ),
                             const SizedBox(height: 32),
-                            
+
                             // Glassmorphic Stats Container
                             ClipRRect(
                               borderRadius: BorderRadius.circular(24),
                               child: BackdropFilter(
-                                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                                filter:
+                                    ImageFilter.blur(sigmaX: 10, sigmaY: 10),
                                 child: Container(
                                   padding: const EdgeInsets.all(24),
                                   decoration: BoxDecoration(
@@ -155,15 +177,20 @@ class HomeScreen extends ConsumerWidget {
                                     children: [
                                       Expanded(
                                         child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
                                           children: [
                                             Row(
                                               children: [
                                                 Container(
-                                                  padding: const EdgeInsets.all(8),
+                                                  padding:
+                                                      const EdgeInsets.all(8),
                                                   decoration: BoxDecoration(
-                                                    color: Colors.white.withOpacity(0.2),
-                                                    borderRadius: BorderRadius.circular(20),
+                                                    color: Colors.white
+                                                        .withOpacity(0.2),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            20),
                                                   ),
                                                   child: const Icon(
                                                     Icons.savings_rounded,
@@ -174,17 +201,22 @@ class HomeScreen extends ConsumerWidget {
                                                 const SizedBox(width: 12),
                                                 Text(
                                                   'Total Savings',
-                                                  style: textTheme.bodyMedium?.copyWith(
-                                                    color: Colors.white.withOpacity(0.9),
-                                                    fontWeight: FontWeight.w500,
+                                                  style: textTheme.bodyMedium
+                                                      ?.copyWith(
+                                                    color: Colors.white
+                                                        .withOpacity(0.9),
+                                                    fontWeight:
+                                                        FontWeight.w500,
                                                   ),
                                                 ),
                                               ],
                                             ),
                                             const SizedBox(height: 12),
                                             Text(
-                                              currencyFormatter.format(totalSavings),
-                                              style: textTheme.headlineLarge?.copyWith(
+                                              currencyFormatter
+                                                  .format(totalSavings),
+                                              style: textTheme.headlineLarge
+                                                  ?.copyWith(
                                                 color: Colors.white,
                                                 fontSize: 28,
                                                 fontWeight: FontWeight.bold,
@@ -201,15 +233,20 @@ class HomeScreen extends ConsumerWidget {
                                       const SizedBox(width: 24),
                                       Expanded(
                                         child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
                                           children: [
                                             Row(
                                               children: [
                                                 Container(
-                                                  padding: const EdgeInsets.all(8),
+                                                  padding:
+                                                      const EdgeInsets.all(8),
                                                   decoration: BoxDecoration(
-                                                    color: Colors.white.withOpacity(0.2),
-                                                    borderRadius: BorderRadius.circular(10),
+                                                    color: Colors.white
+                                                        .withOpacity(0.2),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            10),
                                                   ),
                                                   child: const Icon(
                                                     Icons.stars_rounded,
@@ -220,9 +257,12 @@ class HomeScreen extends ConsumerWidget {
                                                 const SizedBox(width: 12),
                                                 Text(
                                                   'Koin Score',
-                                                  style: textTheme.bodyMedium?.copyWith(
-                                                    color: Colors.white.withOpacity(0.9),
-                                                    fontWeight: FontWeight.w500,
+                                                  style: textTheme.bodyMedium
+                                                      ?.copyWith(
+                                                    color: Colors.white
+                                                        .withOpacity(0.9),
+                                                    fontWeight:
+                                                        FontWeight.w500,
                                                   ),
                                                 ),
                                               ],
@@ -230,7 +270,8 @@ class HomeScreen extends ConsumerWidget {
                                             const SizedBox(height: 12),
                                             Text(
                                               user.koinScore.toString(),
-                                              style: textTheme.headlineLarge?.copyWith(
+                                              style: textTheme.headlineLarge
+                                                  ?.copyWith(
                                                 color: Colors.white,
                                                 fontSize: 28,
                                                 fontWeight: FontWeight.bold,
@@ -244,9 +285,9 @@ class HomeScreen extends ConsumerWidget {
                                 ),
                               ),
                             ),
-                            
+
                             const SizedBox(height: 72),
-                            
+
                             // Section Header
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -264,7 +305,8 @@ class HomeScreen extends ConsumerWidget {
                                     vertical: 6,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: colorScheme.primary.withOpacity(0.1),
+                                    color:
+                                        colorScheme.primary.withOpacity(0.1),
                                     borderRadius: BorderRadius.circular(20),
                                   ),
                                   child: goalsData.when(
@@ -338,6 +380,7 @@ class HomeScreen extends ConsumerWidget {
                     ),
                   );
                 }
+                // This is a scrolling list that is built efficiently
                 return SliverPadding(
                   padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
                   sliver: SliverList(
@@ -359,14 +402,14 @@ class HomeScreen extends ConsumerWidget {
   }
 }
 
-// --- REDESIGNED GOAL ITEM ---
-class GoalListItem extends StatelessWidget {
+// --- UPDATED WIDGET: GoalListItem (Now a ConsumerWidget) ---
+class GoalListItem extends ConsumerWidget { // <-- CHANGED
   final Goal goal;
 
   const GoalListItem({super.key, required this.goal});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) { // <-- ADDED ref
     final currencyFormatter = NumberFormat.currency(
       locale: 'en_KE',
       symbol: 'Ksh ',
@@ -382,7 +425,7 @@ class GoalListItem extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: isComplete 
+            color: isComplete
                 ? Colors.green.withOpacity(0.2)
                 : colorScheme.primary.withOpacity(0.1),
             blurRadius: 15,
@@ -404,7 +447,10 @@ class GoalListItem extends StatelessWidget {
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: isComplete
-                        ? [Colors.green.withOpacity(0.1), Colors.green.withOpacity(0.05)]
+                        ? [
+                            Colors.green.withOpacity(0.1),
+                            Colors.green.withOpacity(0.05)
+                          ]
                         : [
                             colorScheme.primary.withOpacity(0.1),
                             colorScheme.primary.withOpacity(0.05),
@@ -413,6 +459,46 @@ class GoalListItem extends StatelessWidget {
                 ),
               ),
             ),
+            
+            // --- NEW: DELETE BUTTON ---
+            Positioned(
+              top: 8,
+              right: 8,
+              child: IconButton(
+                icon: Icon(Icons.delete_outline_rounded, color: Colors.grey[400]),
+                iconSize: 20,
+                onPressed: () {
+                  // Show confirmation dialog
+                  showDialog(
+                    context: context,
+                    builder: (BuildContext dialogContext) {
+                      return AlertDialog(
+                        title: const Text('Delete Goal?'),
+                        content: Text('Are you sure you want to delete the goal "${goal.name}"? This action cannot be undone.'),
+                        actions: [
+                          TextButton(
+                            child: const Text('Cancel'),
+                            onPressed: () {
+                              Navigator.of(dialogContext).pop(); // Close the dialog
+                            },
+                          ),
+                          TextButton(
+                            child: Text('Delete', style: TextStyle(color: colorScheme.error)),
+                            onPressed: () {
+                              Navigator.of(dialogContext).pop(); // Close the dialog
+                              // Call the notifier to delete the goal
+                              ref.read(goalNotifierProvider.notifier).deleteGoal(goal.id);
+                            },
+                          ),
+                        ],
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+            // ------------------------
+            
             // Content
             Padding(
               padding: const EdgeInsets.all(20),
@@ -427,17 +513,23 @@ class GoalListItem extends StatelessWidget {
                           children: [
                             Text(
                               goal.name,
-                              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 18,
-                              ),
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleLarge
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 18,
+                                  ),
                             ),
                             const SizedBox(height: 4),
                             Text(
                               '${currencyFormatter.format(goal.currentAmount)} of ${currencyFormatter.format(goal.targetAmount)}',
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: Colors.grey[600],
-                              ),
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium
+                                  ?.copyWith(
+                                    color: Colors.grey[600],
+                                  ),
                             ),
                           ],
                         ),
@@ -453,7 +545,9 @@ class GoalListItem extends StatelessWidget {
                               strokeWidth: 5,
                               backgroundColor: Colors.grey[200],
                               valueColor: AlwaysStoppedAnimation<Color>(
-                                isComplete ? Colors.green : colorScheme.primary,
+                                isComplete
+                                    ? Colors.green
+                                    : colorScheme.primary,
                               ),
                             ),
                             Center(
@@ -462,7 +556,9 @@ class GoalListItem extends StatelessWidget {
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.bold,
-                                  color: isComplete ? Colors.green : colorScheme.primary,
+                                  color: isComplete
+                                      ? Colors.green
+                                      : colorScheme.primary,
                                 ),
                               ),
                             ),
@@ -472,7 +568,7 @@ class GoalListItem extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  
+
                   // Action Button
                   SizedBox(
                     width: double.infinity,
@@ -526,7 +622,8 @@ class GoalListItem extends StatelessWidget {
                             style: ElevatedButton.styleFrom(
                               backgroundColor: colorScheme.primary,
                               foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 14),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(14),
                               ),

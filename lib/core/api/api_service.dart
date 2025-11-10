@@ -8,13 +8,8 @@ import 'package:kampus_koin_app/core/models/transaction_model.dart';
 import 'package:kampus_koin_app/core/models/user_model.dart';
 import 'package:kampus_koin_app/core/models/goal_model.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-// For the provider
-
-// Define the base URL of your Django backend
-// In development, this is usually your local IP or ngrok URL
-// IMPORTANT: Replace with your actual local IP or ngrok URL if not using standard localhost
 const String baseUrl =
-    'http://10.5.51.30:8000/api'; // 10.0.2.2 is the special IP for Android emulator to reach localhost
+    'https://backend-fj0v.onrender.com/api'; // 10.0.2.2 is the special IP for Android emulator to reach localhost
 
 // Create a Riverpod provider for easy access to the ApiService
 final apiServiceProvider = Provider<ApiService>((ref) {
@@ -113,6 +108,20 @@ class ApiService {
     } catch (e) {
       // Handle other errors (like network issues)
       print('General login error: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> deleteGoal(int goalId) async {
+    try {
+      // Our interceptor will handle the auth token
+      await _dio.delete('/finance/goals/$goalId/');
+      // A successful 204 No Content response won't return data
+    } on DioException catch (e) {
+      print('Dio deleteGoal error: ${e.response?.data}');
+      rethrow;
+    } catch (e) {
+      print('General deleteGoal error: $e');
       rethrow;
     }
   }
