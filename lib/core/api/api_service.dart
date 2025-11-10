@@ -260,8 +260,12 @@ class ApiService {
       return Order.fromJson(response.data);
     } on DioException catch (e) {
       print('Dio unlockProduct error: ${e.response?.data}');
-      // Pass the specific error message from Django
-      throw Exception(e.response?.data['detail'] ?? 'Failed to unlock product');
+      // --- THIS IS THE FIX ---
+      // Safely check if the response data is a Map and contains the key
+      if (e.response?.data is Map && (e.response!.data as Map).containsKey('detail')) {
+        // If it's a 400 with a "detail" key (like "Koin score too low")
+        throw Exception(e.response!.data['detail']);}
+        throw Exception('Failed to unlock product. Please try again.');
     } catch (e) {
       print('General unlockProduct error: $e');
       throw Exception('An unknown error occurred.');
