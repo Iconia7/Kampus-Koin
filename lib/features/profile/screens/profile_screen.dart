@@ -547,7 +547,7 @@ class OrderListItem extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              order.product as String,
+                              order.product.name,
                               style: Theme.of(context)
                                   .textTheme
                                   .titleLarge
@@ -627,7 +627,7 @@ class OrderListItem extends StatelessWidget {
                               ),
                               child: RepaymentForm(
                                 orderId: order.id,
-                                productName: order.product as String,
+                                productName: order.product.name,
                                 amountDue: amountDue,
                               ),
                             ),
