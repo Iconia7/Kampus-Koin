@@ -337,15 +337,31 @@ class ProductCard extends ConsumerWidget {
     bool showGlow = false;
 
     if (product.isAlreadyUnlocked) {
-      buttonText = 'Already Unlocked';
-      buttonColor = Colors.grey[400]!;
-      buttonIcon = Icons.check_circle_rounded;
-      onPressed = null;
+      buttonText = 'View Ticket';
+      buttonColor = Colors.green;
+      buttonIcon = Icons.qr_code_rounded;
+      showGlow = true;
+      onPressed = () {
+        // We need to pass an Order object to the next screen.
+        // Since the backend now returns 'active_order' in the Product model,
+        // we can use that (assuming your Product model in Dart handles the mapping),
+        // OR we map it manually here if the Product model isn't fully updated yet.
+        
+        // *Assumes product.activeOrder is available via your Dart Model*
+        if (product.activeOrder != null) {
+           context.push('/order-pickup', extra: product.activeOrder);
+        } else {
+           ScaffoldMessenger.of(context).showSnackBar(
+             const SnackBar(content: Text('Error loading ticket details.')),
+           );
+        }
+      };
     } else if (product.isUnlocked) {
       buttonText = 'Unlock Now';
       buttonColor = colorScheme.primary;
       buttonIcon = Icons.lock_open_rounded;
-      onPressed = () async { // <-- MAKE onPresse'd async
+      onPressed = () async { 
+        ScaffoldMessenger.of(context).clearSnackBars();// <-- MAKE onPresse'd async
         final newOrder = await ref
             .read(orderNotifierProvider.notifier)
             .unlockProduct(product.id);
@@ -360,12 +376,20 @@ class ProductCard extends ConsumerWidget {
         else if (context.mounted) {
            // This handles the "Koin score not high enough" error
           final error = ref.read(orderNotifierProvider)[product.id]?.errorMessage;
-           ScaffoldMessenger.of(context).showSnackBar(
-             SnackBar(
-               content: Text(error ?? 'An unknown error occurred.'),
-               backgroundColor: colorScheme.error,
-             ),
-           );
+          
+          showDialog(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              title: const Text('Cannot Unlock'),
+              content: Text(error ?? 'An unknown error occurred.'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('OK'),
+                ),
+              ],
+            ),
+          );
         }
       };
       showGlow = true;
@@ -388,7 +412,7 @@ class ProductCard extends ConsumerWidget {
         boxShadow: [
           BoxShadow(
             color: showGlow
-                ? colorScheme.primary.withOpacity(0.2)
+                ? (product.isAlreadyUnlocked ? Colors.green.withOpacity(0.2) : colorScheme.primary.withOpacity(0.2))
                 : Colors.black.withOpacity(0.08),
             blurRadius: showGlow ? 20 : 15,
             offset: const Offset(0, 4),
@@ -600,7 +624,7 @@ class ProductCard extends ConsumerWidget {
                           borderRadius: BorderRadius.circular(14),
                         ),
                         elevation: showGlow ? 4 : 0,
-                        shadowColor: colorScheme.primary.withOpacity(0.5),
+                        shadowColor: buttonColor.withOpacity(0.5),
                       ),
                       child: productState.isLoading
                           ? const SizedBox(

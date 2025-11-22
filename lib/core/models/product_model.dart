@@ -1,5 +1,7 @@
 // lib/core/models/product_model.dart
 
+import 'package:kampus_koin_app/core/models/order_model.dart';
+
 class Product {
   final int id;
   final String name;
@@ -10,6 +12,7 @@ class Product {
   final bool isAlreadyUnlocked;
   final String? vendorName;    // <-- ADD THIS
   final String? vendorLocation;
+  final Order? activeOrder;
 
   Product({
     required this.id,
@@ -21,6 +24,7 @@ class Product {
     required this.isAlreadyUnlocked,
     this.vendorName,    // <-- ADD THIS
     this.vendorLocation,
+    this.activeOrder,
     
   });
 
@@ -36,6 +40,9 @@ class Product {
       isAlreadyUnlocked: json['is_already_unlocked'],
       vendorName: json['vendor_name'],    // <-- ADD THIS
       vendorLocation: json['vendor_location'],
+      activeOrder: json['active_order'] != null 
+          ? Order.fromJson(json['active_order']) 
+          : null,
     );
   }
 }
