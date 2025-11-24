@@ -1,5 +1,4 @@
 // lib/core/models/product_model.dart
-
 import 'package:kampus_koin_app/core/models/order_model.dart';
 
 class Product {
@@ -10,7 +9,7 @@ class Product {
   final int requiredKoinScore;
   final bool isUnlocked;
   final bool isAlreadyUnlocked;
-  final String? vendorName;    // <-- ADD THIS
+  final String? vendorName;
   final String? vendorLocation;
   final Order? activeOrder;
 
@@ -22,24 +21,30 @@ class Product {
     required this.requiredKoinScore,
     required this.isUnlocked,
     required this.isAlreadyUnlocked,
-    this.vendorName,    // <-- ADD THIS
+    this.vendorName,
     this.vendorLocation,
     this.activeOrder,
-    
   });
 
   factory Product.fromJson(Map<String, dynamic> json) {
     return Product(
-      id: json['id'],
-      name: json['name'],
-      description: json['description'],
-      // Django's DecimalField is a string, so we must parse it.
-      price: double.parse(json['price']),
-      requiredKoinScore: json['required_koin_score'],
-      isUnlocked: json['is_unlocked'],
-      isAlreadyUnlocked: json['is_already_unlocked'],
-      vendorName: json['vendor_name'],    // <-- ADD THIS
+      // Safely parse ID
+      id: int.tryParse(json['id'].toString()) ?? 0,
+      
+      name: json['name'] ?? 'Unknown',
+      description: json['description'] ?? '',
+      
+      // BULLETPROOF DOUBLE PARSING
+      price: double.tryParse((json['price'] ?? 0).toString()) ?? 0.0,
+      
+      // BULLETPROOF INT PARSING
+      requiredKoinScore: int.tryParse((json['required_koin_score'] ?? 0).toString()) ?? 0,
+      
+      isUnlocked: json['is_unlocked'] ?? false,
+      isAlreadyUnlocked: json['is_already_unlocked'] ?? false,
+      vendorName: json['vendor_name'],
       vendorLocation: json['vendor_location'],
+      
       activeOrder: json['active_order'] != null 
           ? Order.fromJson(json['active_order']) 
           : null,

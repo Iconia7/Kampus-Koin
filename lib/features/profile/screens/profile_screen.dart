@@ -502,8 +502,8 @@ class OrderListItem extends StatelessWidget {
             // Status Badge
             if (isPaid)
               Positioned(
-                top: 16,
-                right: 16,
+                top: 10,
+                right: 80,
                 child: Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 12,
@@ -518,14 +518,14 @@ class OrderListItem extends StatelessWidget {
                     children: [
                       Icon(
                         Icons.check_circle,
-                        size: 14,
+                        size: 10,
                         color: Colors.white,
                       ),
                       SizedBox(width: 4),
                       Text(
                         'Paid',
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: 10,
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
                         ),
@@ -571,9 +571,11 @@ class OrderListItem extends StatelessWidget {
                       ),
                       // Circular Progress
                       SizedBox(
-                        width: 56,
-                        height: 56,
+                        width: 50,
+                        height: 50,
                         child: Stack(
+                          alignment: Alignment.center, // <--- 1. Centers everything
+                          fit: StackFit.expand,
                           children: [
                             CircularProgressIndicator(
                               value: progress,

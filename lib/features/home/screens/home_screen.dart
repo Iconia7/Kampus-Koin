@@ -462,8 +462,8 @@ class GoalListItem extends ConsumerWidget { // <-- CHANGED
             
             // --- NEW: DELETE BUTTON ---
             Positioned(
-              top: 8,
-              right: 8,
+              top: -5,
+              right: -5,
               child: IconButton(
                 icon: Icon(Icons.delete_outline_rounded, color: Colors.grey[400]),
                 iconSize: 20,
@@ -536,9 +536,11 @@ class GoalListItem extends ConsumerWidget { // <-- CHANGED
                       ),
                       // Circular Progress
                       SizedBox(
-                        width: 56,
-                        height: 56,
+                        width: 52,
+                        height: 52,
                         child: Stack(
+                          alignment: Alignment.center, // <--- 1. Centers everything
+                          fit: StackFit.expand,
                           children: [
                             CircularProgressIndicator(
                               value: goal.progress,
