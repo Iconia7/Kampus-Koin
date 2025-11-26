@@ -85,7 +85,7 @@ class _DepositFormState extends ConsumerState<DepositForm>
                 ),
               ],
             ),
-            backgroundColor: Colors.green[600],
+            backgroundColor: const Color(0xFF00C853), // Success Green
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
@@ -100,24 +100,32 @@ class _DepositFormState extends ConsumerState<DepositForm>
   @override
   Widget build(BuildContext context) {
     final depositState = ref.watch(depositNotifierProvider);
-    final colorScheme = Theme.of(context).colorScheme;
+    // We ignore the context theme here to enforce the dark modal look
+    // even if the app is in light mode elsewhere
 
     return SlideTransition(
       position: _slideAnimation,
       child: Container(
         decoration: BoxDecoration(
-          gradient: LinearGradient(
+          gradient: const LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              const Color(0xFF1a1a2e),
-              const Color(0xFF16213e),
-              const Color(0xFF0f3460),
+              Color(0xFF1a1a2e),
+              Color(0xFF16213e),
+              Color(0xFF0f3460),
             ],
           ),
           borderRadius: const BorderRadius.vertical(
             top: Radius.circular(32),
           ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.5),
+              blurRadius: 20,
+              spreadRadius: 5,
+            )
+          ]
         ),
         child: Stack(
           children: [
@@ -142,7 +150,7 @@ class _DepositFormState extends ConsumerState<DepositForm>
                 height: 120,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: colorScheme.primary.withOpacity(0.1),
+                  color: const Color(0xFF4ecca3).withOpacity(0.1),
                 ),
               ),
             ),
@@ -186,15 +194,15 @@ class _DepositFormState extends ConsumerState<DepositForm>
                               height: 80,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                gradient: LinearGradient(
+                                gradient: const LinearGradient(
                                   colors: [
-                                    Colors.green[600]!,
-                                    Colors.green[400]!,
+                                    Color(0xFF00C853), // Bright Green
+                                    Color(0xFF009624),
                                   ],
                                 ),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.green.withOpacity(0.4),
+                                    color: const Color(0xFF00C853).withOpacity(0.4),
                                     blurRadius: 20,
                                     spreadRadius: 2,
                                   ),
@@ -227,8 +235,8 @@ class _DepositFormState extends ConsumerState<DepositForm>
 
                     Text(
                       'to ${widget.goalName}',
-                      style: TextStyle(
-                        color: colorScheme.primary,
+                      style: const TextStyle(
+                        color: Color(0xFF4ecca3), // Teal/Green accent
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                       ),
@@ -249,13 +257,13 @@ class _DepositFormState extends ConsumerState<DepositForm>
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                               colors: [
-                                Colors.white.withOpacity(0.2),
                                 Colors.white.withOpacity(0.1),
+                                Colors.white.withOpacity(0.05),
                               ],
                             ),
                             borderRadius: BorderRadius.circular(24),
                             border: Border.all(
-                              color: Colors.white.withOpacity(0.3),
+                              color: Colors.white.withOpacity(0.2),
                               width: 1.5,
                             ),
                           ),
@@ -293,10 +301,10 @@ class _DepositFormState extends ConsumerState<DepositForm>
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Colors.green.withOpacity(0.15),
+                        color: const Color(0xFF00C853).withOpacity(0.1),
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                          color: Colors.green.withOpacity(0.3),
+                          color: const Color(0xFF00C853).withOpacity(0.3),
                           width: 1.5,
                         ),
                       ),
@@ -304,15 +312,15 @@ class _DepositFormState extends ConsumerState<DepositForm>
                         children: [
                           Icon(
                             Icons.info_outline_rounded,
-                            color: Colors.green[300],
+                            color: const Color(0xFF00C853),
                             size: 22,
                           ),
                           const SizedBox(width: 12),
-                          Expanded(
+                          const Expanded(
                             child: Text(
                               'You\'ll receive an M-Pesa prompt on your phone',
                               style: TextStyle(
-                                color: Colors.green[200],
+                                color: Colors.white70,
                                 fontSize: 13,
                                 fontWeight: FontWeight.w500,
                               ),
@@ -404,10 +412,11 @@ class _DepositFormState extends ConsumerState<DepositForm>
         const SizedBox(height: 12),
         Container(
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.1),
+            // Clean dark fill for the input itself
+            color: Colors.black.withOpacity(0.3),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withOpacity(0.1),
               width: 1.5,
             ),
           ),
@@ -419,7 +428,7 @@ class _DepositFormState extends ConsumerState<DepositForm>
             inputFormatters: inputFormatters,
             validator: validator,
             style: const TextStyle(
-              color: Colors.white,
+              color: Colors.white, // White text input
               fontSize: 16,
               fontWeight: FontWeight.w500,
             ),
@@ -432,7 +441,7 @@ class _DepositFormState extends ConsumerState<DepositForm>
               ),
               hintText: hint,
               hintStyle: TextStyle(
-                color: Colors.white.withOpacity(0.4),
+                color: Colors.white.withOpacity(0.3),
               ),
               prefixIcon: Icon(
                 icon,
@@ -466,16 +475,16 @@ class _DepositFormState extends ConsumerState<DepositForm>
       width: double.infinity,
       height: 60,
       decoration: BoxDecoration(
-        gradient: LinearGradient(
+        gradient: const LinearGradient(
           colors: [
-            Colors.green[600]!,
-            Colors.green[400]!,
+            Color(0xFF00C853), // Success Green start
+            Color(0xFF009624), // Darker Green end
           ],
         ),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.green.withOpacity(0.5),
+            color: const Color(0xFF00C853).withOpacity(0.4),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),

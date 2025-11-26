@@ -1,13 +1,19 @@
 // lib/features/home/screens/home_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kampus_koin_app/core/models/goal_model.dart';
 import 'package:kampus_koin_app/features/goals/widgets/deposit_form.dart';
 import 'package:kampus_koin_app/features/home/providers/total_savings_provider.dart';
 import 'package:kampus_koin_app/features/home/providers/user_data_provider.dart';
+import 'package:kampus_koin_app/features/profile/providers/transactions_provider.dart'; // <-- IMPORT THIS
 import '../../auth/providers/auth_notifier.dart';
 import 'package:kampus_koin_app/features/home/providers/goals_provider.dart';
-import 'package:kampus_koin_app/features/goals/providers/goal_notifier.dart'; // <-- IMPORT
+import 'package:kampus_koin_app/features/goals/providers/goal_notifier.dart';
+// --- NEW IMPORTS ---
+import 'package:kampus_koin_app/features/home/widgets/user_badge.dart';
+import 'package:kampus_koin_app/features/home/widgets/savings_chart.dart';
+// -------------------
 import 'package:intl/intl.dart';
 import 'dart:ui';
 
@@ -18,6 +24,7 @@ class HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final userData = ref.watch(userDataProvider);
     final goalsData = ref.watch(goalsProvider);
+    final transactionsData = ref.watch(transactionsProvider); // <-- WATCH THIS
     final totalSavings = ref.watch(totalSavingsProvider);
     final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
@@ -40,8 +47,8 @@ class HomeScreen extends ConsumerWidget {
       backgroundColor: colorScheme.surface,
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title:
-            const Text('Dashboard', style: TextStyle(fontWeight: FontWeight.w600)),
+        title: const Text('Dashboard',
+            style: TextStyle(fontWeight: FontWeight.w600)),
         backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
@@ -62,18 +69,13 @@ class HomeScreen extends ConsumerWidget {
       ),
       body: RefreshIndicator(
         onRefresh: () async {
-          // This will re-run all FutureProviders
           ref.invalidate(userDataProvider);
           ref.invalidate(goalsProvider);
-          // totalSavingsProvider will refresh automatically
+          ref.invalidate(transactionsProvider); // Refresh tx for the chart
         },
-        // We use a CustomScrollView to combine scrolling content
-        // with the RefreshIndicator
         child: CustomScrollView(
-          // This makes the refresh work even if content is small
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
-            // We use SliverToBoxAdapter to hold our non-list content
             SliverToBoxAdapter(
               child: userData.when(
                 loading: () => const Center(
@@ -87,9 +89,9 @@ class HomeScreen extends ConsumerWidget {
                 data: (user) {
                   return Stack(
                     children: [
-                      // Gradient Background
+                      // Gradient Background (Taller to accommodate chart)
                       Container(
-                        height: 380,
+                        height: 440, // Increased height slightly
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             colors: [
@@ -101,8 +103,8 @@ class HomeScreen extends ConsumerWidget {
                             end: Alignment.bottomRight,
                           ),
                           borderRadius: const BorderRadius.only(
-                            bottomLeft: Radius.circular(80),
-                            bottomRight: Radius.circular(80),
+                            bottomLeft: Radius.circular(60),
+                            bottomRight: Radius.circular(60),
                           ),
                         ),
                       ),
@@ -147,14 +149,25 @@ class HomeScreen extends ConsumerWidget {
                               ),
                             ),
                             const SizedBox(height: 4),
-                            Text(
-                              user.name,
-                              style: textTheme.displayLarge?.copyWith(
-                                color: Colors.white,
-                                fontSize: 32,
-                                fontWeight: FontWeight.bold,
-                              ),
+                            
+                            // --- MODIFIED: Name Row with Badge ---
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  user.name,
+                                  style: textTheme.displayLarge?.copyWith(
+                                    color: Colors.white,
+                                    fontSize: 32,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                // --- NEW BADGE ---
+                                UserBadge(koinScore: user.koinScore),
+                                // -----------------
+                              ],
                             ),
+                            
                             const SizedBox(height: 32),
 
                             // Glassmorphic Stats Container
@@ -285,8 +298,18 @@ class HomeScreen extends ConsumerWidget {
                                 ),
                               ),
                             ),
+                            
+                            const SizedBox(height: 24),
 
-                            const SizedBox(height: 72),
+                            // --- NEW: SAVINGS CHART ---
+                            transactionsData.when(
+                                data: (transactions) => SavingsChart(transactions: transactions),
+                                loading: () => const SizedBox(height: 220, child: Center(child: CircularProgressIndicator())),
+                                error: (_, __) => const SizedBox.shrink()
+                            ),
+                            // --------------------------
+
+                            const SizedBox(height: 32),
 
                             // Section Header
                             Row(
@@ -401,6 +424,7 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 }
+// ... (GoalListItem remains the same as your previous version)
 
 // --- UPDATED WIDGET: GoalListItem (Now a ConsumerWidget) ---
 class GoalListItem extends ConsumerWidget { // <-- CHANGED

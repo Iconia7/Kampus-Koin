@@ -45,12 +45,19 @@ class _CreateGoalFormState extends ConsumerState<CreateGoalForm> {
   Widget build(BuildContext context) {
     final goalState = ref.watch(goalNotifierProvider);
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
-    return Padding(
+    // We wrap in a container to give it the rounded top corners
+    // and background color that matches the rest of the app's "sheet" style
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white, // Clean white background for the form
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+      ),
       padding: EdgeInsets.only(
         left: 24,
         right: 24,
-        top: 32,
+        top: 24,
         bottom: MediaQuery.of(context).viewInsets.bottom + 32,
       ),
       child: Form(
@@ -59,16 +66,32 @@ class _CreateGoalFormState extends ConsumerState<CreateGoalForm> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+             // --- Handle Bar ---
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+
             // --- Header Section ---
             Text(
               'Create New Goal',
-              style: theme.textTheme.headlineMedium,
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
             Text(
               'Start saving for something amazing',
-              style: theme.textTheme.bodyLarge?.copyWith(
+              style: theme.textTheme.bodyMedium?.copyWith(
                 color: Colors.grey[600],
               ),
               textAlign: TextAlign.center,
@@ -78,25 +101,55 @@ class _CreateGoalFormState extends ConsumerState<CreateGoalForm> {
             // --- Goal Name Input ---
             TextFormField(
               controller: _nameController,
-              decoration: const InputDecoration(
+              style: const TextStyle(color: Colors.black87),
+              decoration: InputDecoration(
                 labelText: 'Goal Name',
                 hintText: 'e.g., New Laptop',
-                prefixIcon: Icon(Icons.flag_outlined),
+                prefixIcon: Icon(Icons.flag_outlined, color: colorScheme.primary),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey[300]!),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey[300]!),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: colorScheme.primary, width: 2),
+                ),
+                filled: true,
+                fillColor: Colors.grey[50],
               ),
               validator: (value) => (value == null || value.isEmpty)
                   ? 'Please enter a name'
                   : null,
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
 
             // --- Target Amount Input ---
             TextFormField(
               controller: _amountController,
-              decoration: const InputDecoration(
+              style: const TextStyle(color: Colors.black87),
+              decoration: InputDecoration(
                 labelText: 'Target Amount',
                 hintText: 'e.g., 85000',
                 prefixText: 'KES ',
-                prefixIcon: Icon(Icons.attach_money),
+                prefixIcon: Icon(Icons.monetization_on_outlined, color: colorScheme.primary),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey[300]!),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey[300]!),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: colorScheme.primary, width: 2),
+                ),
+                filled: true,
+                fillColor: Colors.grey[50],
               ),
               keyboardType: TextInputType.number,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
@@ -114,21 +167,39 @@ class _CreateGoalFormState extends ConsumerState<CreateGoalForm> {
               },
             ),
 
-            const SizedBox(height: 48),
+            const SizedBox(height: 40),
 
             // --- Submit Button ---
-            ElevatedButton(
-              onPressed: goalState.isLoading ? null : _submitGoal,
-              child: goalState.isLoading
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(
-                        color: Colors.white,
-                        strokeWidth: 2,
+            SizedBox(
+              height: 56, // Standard button height
+              child: ElevatedButton(
+                onPressed: goalState.isLoading ? null : _submitGoal,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: colorScheme.primary,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                child: goalState.isLoading
+                    ? const SizedBox(
+                        height: 24,
+                        width: 24,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2.5,
+                        ),
+                      )
+                    : const Text(
+                        'CREATE GOAL',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.0,
+                        ),
                       ),
-                    )
-                  : const Text('CREATE GOAL'),
+              ),
             ),
 
             // --- Error Message ---
@@ -137,7 +208,7 @@ class _CreateGoalFormState extends ConsumerState<CreateGoalForm> {
                 padding: const EdgeInsets.only(top: 16),
                 child: Text(
                   goalState.errorMessage!,
-                  style: TextStyle(color: theme.colorScheme.error),
+                  style: TextStyle(color: colorScheme.error, fontSize: 14),
                   textAlign: TextAlign.center,
                 ),
               ),

@@ -11,7 +11,6 @@ enum AuthStatus { initial, loading, authenticated, error }
 class AuthState {
   final AuthStatus status;
   final String? errorMessage;
-  // We might store user data here later
 
   AuthState({this.status = AuthStatus.initial, this.errorMessage});
 
@@ -50,9 +49,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final refreshToken = response['refresh'];
 
       if (accessToken != null && refreshToken != null) {
-        // Securely store the tokens
+        // 1. Securely store the tokens
         await _secureStorage.write(key: 'accessToken', value: accessToken);
         await _secureStorage.write(key: 'refreshToken', value: refreshToken);
+        
+        // 2. --- NEW: Save credentials for Biometrics ---
+        await _secureStorage.write(key: 'bio_email', value: email);
+        await _secureStorage.write(key: 'bio_password', value: password);
+        // -----------------------------------------------
+
         state = state.copyWith(status: AuthStatus.authenticated);
       } else {
         throw Exception('Tokens not found in response');
@@ -70,24 +75,24 @@ class AuthNotifier extends StateNotifier<AuthState> {
     required String email,
     required String password,
     required String phoneNumber,
-    String? admno,
+    String? admno, // Updated to match RegisterScreen
   }) async {
     state = state.copyWith(status: AuthStatus.loading, errorMessage: null);
     try {
       // 1. Create the user
+      // Note: We map 'studentId' to the 'admno' parameter expected by ApiService
       await _apiService.register(
         name: name,
         email: email,
         password: password,
         phoneNumber: phoneNumber,
-        admno: admno,
-      );
+        admno: admno, 
+      ); 
 
       // 2. Immediately log the new user in to get tokens
+      // This will also save the bio credentials automatically via the login method above
       await login(email, password);
 
-      // The 'login' method will handle storing tokens
-      // and setting the state to Authenticated.
     } catch (e) {
       // Pass the specific error message from the ApiService
       state = state.copyWith(
@@ -97,8 +102,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  // Add logout and register methods later
   Future<void> logout() async {
+    // We delete everything, including biometric data, for security on logout.
     await _secureStorage.deleteAll();
     state = AuthState(); // Reset to initial state
   }

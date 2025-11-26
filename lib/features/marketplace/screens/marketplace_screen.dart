@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:kampus_koin_app/core/models/product_model.dart';
+import 'package:kampus_koin_app/features/goals/widgets/smart_create_goal_form.dart';
 import 'package:kampus_koin_app/features/marketplace/providers/order_notifier.dart';
 import '../providers/products_provider.dart';
 import 'dart:ui';
@@ -394,10 +395,31 @@ class ProductCard extends ConsumerWidget {
       };
       showGlow = true;
     } else {
-      buttonText = 'Keep Saving';
-      buttonColor = Colors.grey[400]!;
-      buttonIcon = Icons.lock_rounded;
-      onPressed = null;
+      buttonText = 'Save for this';
+      buttonColor = colorScheme.secondary;
+      buttonIcon = Icons.savings_rounded;
+      onPressed = () {
+        // Calculate the 25% down payment automatically
+        final downPayment = product.price * 0.25;
+        
+        // Show the Create Goal form with PRE-FILLED data
+        showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (ctx) => Container(
+             decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+              ),
+            // We pass the values to the form (We need to update the form next)
+            child: SmartCreateGoalForm(
+              initialName: product.name,
+              initialAmount: downPayment.toStringAsFixed(0), // Removing decimals
+            ),
+          ),
+        );
+      };
     }
 
     if (productState.isLoading) {
