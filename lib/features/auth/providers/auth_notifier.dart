@@ -4,10 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:kampus_koin_app/core/api/api_service.dart';
 
-// Define possible authentication states
 enum AuthStatus { initial, loading, authenticated, error }
 
-// Define the state class
 class AuthState {
   final AuthStatus status;
   final String? errorMessage;
@@ -22,7 +20,6 @@ class AuthState {
   }
 }
 
-// Create the Notifier class
 class AuthNotifier extends StateNotifier<AuthState> {
   final ApiService _apiService;
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
@@ -30,13 +27,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
   AuthNotifier(this._apiService) : super(AuthState());
 
   Future<void> checkAuthStatus() async {
-    // Check secure storage for a token
     final token = await _secureStorage.read(key: 'accessToken');
     if (token != null) {
-      // If we have a token, we are (at least initially) authenticated
       state = state.copyWith(status: AuthStatus.authenticated);
     } else {
-      // No token, we are logged out
       state = state.copyWith(status: AuthStatus.initial);
     }
   }
@@ -44,25 +38,30 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<void> login(String email, String password) async {
     state = state.copyWith(status: AuthStatus.loading, errorMessage: null);
     try {
+      print("DEBUG: Logging in with $email..."); // Debug log
+
       final response = await _apiService.login(email, password);
       final accessToken = response['access'];
       final refreshToken = response['refresh'];
 
       if (accessToken != null && refreshToken != null) {
-        // 1. Securely store the tokens
+        // 1. Save Tokens
         await _secureStorage.write(key: 'accessToken', value: accessToken);
         await _secureStorage.write(key: 'refreshToken', value: refreshToken);
         
-        // 2. --- NEW: Save credentials for Biometrics ---
+        // 2. --- CRITICAL: Save Credentials for Biometrics ---
+        print("DEBUG: Saving credentials for biometrics..."); // Debug log
         await _secureStorage.write(key: 'bio_email', value: email);
         await _secureStorage.write(key: 'bio_password', value: password);
-        // -----------------------------------------------
+        print("DEBUG: Credentials saved!"); // Debug log
+        // ---------------------------------------------------
 
         state = state.copyWith(status: AuthStatus.authenticated);
       } else {
         throw Exception('Tokens not found in response');
       }
     } catch (e) {
+      print("DEBUG: Login Error: $e"); // Debug log
       state = state.copyWith(
         status: AuthStatus.error,
         errorMessage: 'Login failed. Please check your credentials.',
@@ -75,26 +74,20 @@ class AuthNotifier extends StateNotifier<AuthState> {
     required String email,
     required String password,
     required String phoneNumber,
-    String? admno, // Updated to match RegisterScreen
+    String? admno,
   }) async {
     state = state.copyWith(status: AuthStatus.loading, errorMessage: null);
     try {
-      // 1. Create the user
-      // Note: We map 'studentId' to the 'admno' parameter expected by ApiService
       await _apiService.register(
         name: name,
         email: email,
         password: password,
         phoneNumber: phoneNumber,
         admno: admno, 
-      ); 
-
-      // 2. Immediately log the new user in to get tokens
-      // This will also save the bio credentials automatically via the login method above
+      );
+      // Login immediately to save credentials
       await login(email, password);
-
     } catch (e) {
-      // Pass the specific error message from the ApiService
       state = state.copyWith(
         status: AuthStatus.error,
         errorMessage: e.toString().replaceFirst('Exception: ', ''),
@@ -103,13 +96,20 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<void> logout() async {
-    // We delete everything, including biometric data, for security on logout.
-    await _secureStorage.deleteAll();
-    state = AuthState(); // Reset to initial state
+    // Note: In a real app, you might want to keep bio_email/bio_password 
+    // even after logout so they can quick-login again. 
+    // For now, we delete tokens but keep bio data is a common pattern, 
+    // BUT for this specific implementation, let's just delete tokens.
+    
+    await _secureStorage.delete(key: 'accessToken');
+    await _secureStorage.delete(key: 'refreshToken');
+    // We DO NOT delete bio_email/bio_password here, otherwise 
+    // the fingerprint button will disappear every time you logout!
+    
+    state = AuthState(); 
   }
 }
 
-// Create the Riverpod provider for the AuthNotifier
 final authNotifierProvider = StateNotifierProvider<AuthNotifier, AuthState>((
   ref,
 ) {

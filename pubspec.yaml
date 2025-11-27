@@ -43,6 +43,10 @@ dependencies:
   qr_flutter: ^4.1.0
   fl_chart: ^1.1.1
   local_auth: ^2.1.6
+  url_launcher: ^6.3.2
+  introduction_screen: ^3.1.14 
+  shared_preferences: ^2.3.2
+  flutter_markdown: ^0.7.7+1
 
 dev_dependencies:
   flutter_test:

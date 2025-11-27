@@ -272,6 +272,25 @@ class ApiService {
     }
   }
 
+  Future<User> updateProfile({String? name, String? phoneNumber}) async {
+    try {
+      final response = await _dio.patch(
+        '/users/me/',
+        data: {
+          if (name != null) 'name': name,
+          if (phoneNumber != null) 'phone_number': phoneNumber,
+        },
+      );
+      return User.fromJson(response.data);
+    } on DioException catch (e) {
+      print('Dio updateProfile error: ${e.response?.data}');
+      throw Exception(e.response?.data['detail'] ?? 'Failed to update profile');
+    } catch (e) {
+      print('General updateProfile error: $e');
+      rethrow;
+    }
+  }
+
   Future<void> depositToGoal(int goalId, String amount) async {
     try {
       // Our interceptor will handle the auth token

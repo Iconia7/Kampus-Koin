@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:kampus_koin_app/core/models/order_model.dart';
 import 'package:kampus_koin_app/core/models/transaction_model.dart';
@@ -31,6 +32,20 @@ class ProfileScreen extends ConsumerWidget {
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.edit_rounded),
+            tooltip: 'Edit Profile',
+            onPressed: () {
+              context.push('/edit-profile');
+            },
+          ),
+          IconButton(
+    icon: const Icon(Icons.settings_outlined, color: Colors.black),
+    onPressed: () => context.push('/settings'),
+  ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: RefreshIndicator(
         onRefresh: () async {

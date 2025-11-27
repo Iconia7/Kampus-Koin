@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:kampus_koin_app/features/auth/widgets/forgot_password_modal.dart';
 import 'package:local_auth/local_auth.dart'; // <-- IMPORT
 import 'package:flutter_secure_storage/flutter_secure_storage.dart'; // <-- IMPORT
 import 'package:kampus_koin_app/core/widgets/loading_overlay.dart';
@@ -33,22 +34,35 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   // Check if hardware exists and if we have saved data
+// Replace your existing _checkBiometrics with this:
   Future<void> _checkBiometrics() async {
     try {
+      // 1. Check if hardware exists
       final canCheck = await auth.canCheckBiometrics;
+      
+      // 2. Check if device is supported (e.g. not too old)
+      final isSupported = await auth.isDeviceSupported();
+      
+      // 3. Check for saved data
       final email = await _storage.read(key: 'bio_email');
       final password = await _storage.read(key: 'bio_password');
       
+      // --- DEBUG PRINTS (Check your terminal!) ---
+      print('--------------------------------');
+      print('BIOMETRIC DEBUG:');
+      print('Hardware Available: $canCheck');
+      print('Device Supported: $isSupported');
+      print('Saved Email: $email'); 
+      print('--------------------------------');
+
       setState(() {
-        _canCheckBiometrics = canCheck;
+        // We combine both checks for safety
+        _canCheckBiometrics = canCheck && isSupported;
         _hasSavedCredentials = email != null && password != null;
       });
       
-      // Optional: Auto-trigger biometrics if available
-      // if (_canCheckBiometrics && _hasSavedCredentials) _authenticate();
-      
     } catch (e) {
-      print(e);
+      print("Biometric Check Error: $e");
     }
   }
 
@@ -159,7 +173,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     _buildSimpleTextField(
                       controller: _emailController,
                       label: 'Email Address',
-                      hint: 'student@daystar.ac.ke',
+                      hint: 'email@gmail.com',
                       icon: Icons.email_outlined,
                       keyboardType: TextInputType.emailAddress,
                     ),
@@ -187,7 +201,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     Align(
                       alignment: Alignment.centerRight,
                       child: TextButton(
-                        onPressed: () {},
+                        onPressed: () {
+                          showModalBottomSheet(
+                            context: context,
+                            backgroundColor: Colors.transparent,
+                            builder: (context) => const ForgotPasswordModal(),
+                          );
+                        },
                         child: Text(
                           'Forgot Password?',
                           style: TextStyle(color: colorScheme.primary),
