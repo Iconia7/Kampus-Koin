@@ -44,21 +44,14 @@ class _CreateGoalFormState extends ConsumerState<CreateGoalForm> {
   @override
   Widget build(BuildContext context) {
     final goalState = ref.watch(goalNotifierProvider);
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
+    final colorScheme = Theme.of(context).colorScheme;
 
-    // We wrap in a container to give it the rounded top corners
-    // and background color that matches the rest of the app's "sheet" style
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white, // Clean white background for the form
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-      ),
+    return Padding(
       padding: EdgeInsets.only(
         left: 24,
         right: 24,
-        top: 24,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 32,
+        top: 16,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
       ),
       child: Form(
         key: _formKey,
@@ -66,7 +59,7 @@ class _CreateGoalFormState extends ConsumerState<CreateGoalForm> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-             // --- Handle Bar ---
+            // 1. Drag Handle
             Center(
               child: Container(
                 width: 40,
@@ -79,10 +72,11 @@ class _CreateGoalFormState extends ConsumerState<CreateGoalForm> {
             ),
             const SizedBox(height: 24),
 
-            // --- Header Section ---
-            Text(
+            // 2. Header
+            const Text(
               'Create New Goal',
-              style: theme.textTheme.headlineSmall?.copyWith(
+              style: TextStyle(
+                fontSize: 22,
                 fontWeight: FontWeight.bold,
                 color: Colors.black87,
               ),
@@ -91,68 +85,84 @@ class _CreateGoalFormState extends ConsumerState<CreateGoalForm> {
             const SizedBox(height: 8),
             Text(
               'Start saving for something amazing',
-              style: theme.textTheme.bodyMedium?.copyWith(
+              style: TextStyle(
+                fontSize: 14,
                 color: Colors.grey[600],
+                fontWeight: FontWeight.w500,
               ),
               textAlign: TextAlign.center,
             ),
+            
             const SizedBox(height: 32),
 
-            // --- Goal Name Input ---
+            // 3. Goal Name Input
+            Text(
+              'Goal Name',
+              style: TextStyle(
+                color: Colors.grey[700],
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
             TextFormField(
               controller: _nameController,
-              style: const TextStyle(color: Colors.black87),
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
               decoration: InputDecoration(
-                labelText: 'Goal Name',
                 hintText: 'e.g., New Laptop',
-                prefixIcon: Icon(Icons.flag_outlined, color: colorScheme.primary),
+                hintStyle: TextStyle(color: Colors.grey[400]),
+                prefixIcon: const Icon(Icons.flag_outlined, color: Colors.grey),
+                filled: true,
+                fillColor: const Color(0xFFF8FAFC),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey[300]!),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey[300]!),
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide.none,
                 ),
                 focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: colorScheme.primary, width: 2),
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(color: colorScheme.primary, width: 1.5),
                 ),
-                filled: true,
-                fillColor: Colors.grey[50],
               ),
               validator: (value) => (value == null || value.isEmpty)
                   ? 'Please enter a name'
                   : null,
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
 
-            // --- Target Amount Input ---
+            // 4. Target Amount Input
+            Text(
+              'Target Amount',
+              style: TextStyle(
+                color: Colors.grey[700],
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
             TextFormField(
               controller: _amountController,
-              style: const TextStyle(color: Colors.black87),
-              decoration: InputDecoration(
-                labelText: 'Target Amount',
-                hintText: 'e.g., 85000',
-                prefixText: 'KES ',
-                prefixIcon: Icon(Icons.monetization_on_outlined, color: colorScheme.primary),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey[300]!),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey[300]!),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: colorScheme.primary, width: 2),
-                ),
-                filled: true,
-                fillColor: Colors.grey[50],
-              ),
               keyboardType: TextInputType.number,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+              decoration: InputDecoration(
+                hintText: 'e.g., 85000',
+                hintStyle: TextStyle(color: Colors.grey[400]),
+                prefixIcon: const Icon(Icons.monetization_on_outlined, color: Colors.grey),
+                prefixText: 'KES ',
+                prefixStyle: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
+                filled: true,
+                fillColor: const Color(0xFFF8FAFC),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide.none,
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(color: colorScheme.primary, width: 1.5),
+                ),
+              ),
               validator: (value) {
                 if (value == null || value.isEmpty) {
                   return 'Please enter an amount';
@@ -169,18 +179,21 @@ class _CreateGoalFormState extends ConsumerState<CreateGoalForm> {
 
             const SizedBox(height: 40),
 
-            // --- Submit Button ---
+            // 5. Submit Button
             SizedBox(
-              height: 56, // Standard button height
+              width: double.infinity,
+              height: 56,
               child: ElevatedButton(
                 onPressed: goalState.isLoading ? null : _submitGoal,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: colorScheme.primary,
                   foregroundColor: Colors.white,
-                  elevation: 0,
+                  elevation: 2,
+                  shadowColor: colorScheme.primary.withOpacity(0.3),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
+                  disabledBackgroundColor: Colors.grey[300],
                 ),
                 child: goalState.isLoading
                     ? const SizedBox(
@@ -188,27 +201,26 @@ class _CreateGoalFormState extends ConsumerState<CreateGoalForm> {
                         width: 24,
                         child: CircularProgressIndicator(
                           color: Colors.white,
-                          strokeWidth: 2.5,
+                          strokeWidth: 2,
                         ),
                       )
                     : const Text(
-                        'CREATE GOAL',
+                        'Create Goal',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          letterSpacing: 1.0,
+                          letterSpacing: 0.5,
                         ),
                       ),
               ),
             ),
 
-            // --- Error Message ---
             if (goalState.errorMessage != null)
               Padding(
                 padding: const EdgeInsets.only(top: 16),
                 child: Text(
                   goalState.errorMessage!,
-                  style: TextStyle(color: colorScheme.error, fontSize: 14),
+                  style: TextStyle(color: colorScheme.error, fontSize: 13),
                   textAlign: TextAlign.center,
                 ),
               ),

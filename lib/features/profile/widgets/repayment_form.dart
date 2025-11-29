@@ -47,6 +47,7 @@ class _RepaymentFormState extends ConsumerState<RepaymentForm> {
               'Repayment STK push sent! Check your phone to enter your PIN.',
             ),
             backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
           ),
         );
       }
@@ -56,13 +57,14 @@ class _RepaymentFormState extends ConsumerState<RepaymentForm> {
   @override
   Widget build(BuildContext context) {
     final repaymentState = ref.watch(repaymentNotifierProvider);
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Padding(
       padding: EdgeInsets.only(
         left: 24,
         right: 24,
-        top: 32,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 32,
+        top: 16,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
       ),
       child: Form(
         key: _formKey,
@@ -70,56 +72,158 @@ class _RepaymentFormState extends ConsumerState<RepaymentForm> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // 1. Drag Handle
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // 2. Header
             Text(
-              'Repay for ${widget.productName}',
-              style: Theme.of(context).textTheme.headlineMedium,
+              'Make Repayment',
+              style: const TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
             Text(
-              'Amount Due: KES ${widget.amountDue.toStringAsFixed(2)}',
-              style: Theme.of(context).textTheme.bodyLarge,
+              'For ${widget.productName}',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[600],
+                fontWeight: FontWeight.w500,
+              ),
               textAlign: TextAlign.center,
             ),
+            
+            const SizedBox(height: 24),
+
+            // 3. Balance Indicator
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF7ED), // Light orange background
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFFFEDD5)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.info_outline_rounded, size: 18, color: colorScheme.secondary),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Outstanding Balance: ',
+                    style: TextStyle(
+                      color: colorScheme.secondary,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  Text(
+                    'KES ${widget.amountDue.toStringAsFixed(0)}',
+                    style: TextStyle(
+                      color: colorScheme.secondary,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
             const SizedBox(height: 32),
+
+            // 4. Amount Input Field
+            Text(
+              'Amount to Repay',
+              style: TextStyle(
+                color: Colors.grey[700],
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
             TextFormField(
               controller: _amountController,
-              decoration: const InputDecoration(
-                labelText: 'Amount to Repay',
-                hintText: 'e.g., 500',
-                prefixText: 'KES ',
-              ),
               keyboardType: TextInputType.number,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+              decoration: InputDecoration(
+                hintText: 'e.g., 500',
+                hintStyle: TextStyle(color: Colors.grey[400]),
+                prefixIcon: const Icon(Icons.attach_money_rounded, color: Colors.grey), // Or 'KES' text prefix
+                prefixText: 'KES ',
+                prefixStyle: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
+                filled: true,
+                fillColor: const Color(0xFFF8FAFC), // Very light grey fill
+                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide.none,
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(color: colorScheme.primary, width: 1.5),
+                ),
+              ),
               validator: (value) {
                 if (value == null || value.isEmpty) {
                   return 'Please enter an amount';
                 }
-                if (double.tryParse(value) == null) {
-                  return 'Please enter a valid number';
-                }
-                final amount = double.parse(value);
+                final amount = double.tryParse(value);
+                if (amount == null) return 'Invalid number';
                 if (amount <= 0) return 'Amount must be greater than zero';
                 if (amount > widget.amountDue) {
-                  return 'Amount cannot be greater than the amount due';
+                  return 'Cannot exceed outstanding balance';
                 }
                 return null;
               },
             ),
-            const SizedBox(height: 48),
 
-            ElevatedButton(
-              onPressed: repaymentState.isLoading ? null : _submitRepayment,
-              child: repaymentState.isLoading
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(
-                        color: Colors.white,
-                        strokeWidth: 2,
+            const SizedBox(height: 32),
+
+            // 5. Submit Button
+            SizedBox(
+              width: double.infinity,
+              height: 56,
+              child: ElevatedButton(
+                onPressed: repaymentState.isLoading ? null : _submitRepayment,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: colorScheme.primary,
+                  foregroundColor: Colors.white,
+                  elevation: 2,
+                  shadowColor: colorScheme.primary.withOpacity(0.3),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  disabledBackgroundColor: Colors.grey[300],
+                ),
+                child: repaymentState.isLoading
+                    ? const SizedBox(
+                        height: 24,
+                        width: 24,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Text(
+                        'Confirm Repayment',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.5,
+                        ),
                       ),
-                    )
-                  : const Text('SUBMIT REPAYMENT'),
+              ),
             ),
 
             if (repaymentState.errorMessage != null)
@@ -127,7 +231,7 @@ class _RepaymentFormState extends ConsumerState<RepaymentForm> {
                 padding: const EdgeInsets.only(top: 16),
                 child: Text(
                   repaymentState.errorMessage!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                  style: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: 13),
                   textAlign: TextAlign.center,
                 ),
               ),

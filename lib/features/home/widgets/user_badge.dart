@@ -17,40 +17,45 @@ class UserBadge extends StatelessWidget {
     if (koinScore >= 10000) {
       badgeName = "Gold Financier";
       badgeColor = const Color(0xFFFFD700); // Gold
-      badgeIcon = Icons.workspace_premium;
+      badgeIcon = Icons.workspace_premium_rounded;
     } else if (koinScore >= 5000) {
       badgeName = "Silver Saver";
-      badgeColor = const Color(0xFFC0C0C0); // Silver
-      badgeIcon = Icons.verified;
+      badgeColor = const Color(0xFFE0E0E0); // Lighter Silver
+      badgeIcon = Icons.verified_rounded;
     } else if (koinScore >= 1000) {
       badgeName = "Bronze Saver";
-      badgeColor = const Color(0xFFCD7F32); // Bronze
-      badgeIcon = Icons.shield;
+      badgeColor = const Color(0xFFFFCC80); // Lighter Bronze
+      badgeIcon = Icons.shield_rounded;
     } else {
       badgeName = "Rising Star";
-      badgeColor = Colors.blueAccent;
-      badgeIcon = Icons.star_border;
+      badgeColor = const Color(0xFF69F0AE); // Bright Green/Cyan accent
+      badgeIcon = Icons.star_rounded;
     }
 
     // --- 2. Build the Sleek Badge UI ---
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: badgeColor.withOpacity(0.2),
+        // Glassy effect for gradient backgrounds
+        color: Colors.white.withOpacity(0.15),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: badgeColor.withOpacity(0.5)),
+        border: Border.all(
+          color: badgeColor.withOpacity(0.6), 
+          width: 1
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(badgeIcon, size: 16, color: badgeColor),
+          Icon(badgeIcon, size: 14, color: badgeColor),
           const SizedBox(width: 6),
           Text(
-            badgeName,
+            badgeName.toUpperCase(),
             style: TextStyle(
               color: badgeColor,
-              fontWeight: FontWeight.bold,
-              fontSize: 12,
+              fontWeight: FontWeight.w800,
+              fontSize: 10,
+              letterSpacing: 0.5,
             ),
           ),
         ],

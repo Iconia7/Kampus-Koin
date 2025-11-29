@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kampus_koin_app/core/widgets/loading_overlay.dart';
 import '../providers/auth_notifier.dart';
-import 'package:flutter/gestures.dart'; // Required for TapGestureRecognizer
+import 'package:flutter/gestures.dart';
 import 'package:kampus_koin_app/core/constants/legal_content.dart';
 import 'package:kampus_koin_app/core/widgets/legal_page.dart';
 
@@ -39,7 +39,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   void _submitRegister() {
     if (!_agreedToTerms) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please agree to the Terms & Privacy Policy')),
+        const SnackBar(
+          content: Text('Please agree to the Terms & Privacy Policy'),
+          behavior: SnackBarBehavior.floating,
+        ),
       );
       return;
     }
@@ -58,7 +61,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
     final authState = ref.watch(authNotifierProvider);
 
@@ -78,80 +80,97 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     });
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF5F7FA), // Light grey background
       body: Stack(
         children: [
-          // Main Content
+          // 1. Top Gradient Header
+          Container(
+            height: MediaQuery.of(context).size.height * 0.35,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [colorScheme.primary, colorScheme.secondary],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(60),
+                bottomRight: Radius.circular(60),
+              ),
+            ),
+          ),
+
+          // 2. Back Button (SafeArea)
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
+                      onPressed: () => context.pop(),
+                    ),
+                    const Text(
+                      'Back to Login',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // 3. Main Content
           SafeArea(
             child: Center(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      const SizedBox(height: 40),
-                      
-                      // Logo/Icon
-                      Container(
-                        width: 100,
-                        height: 100,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              colorScheme.primary,
-                              colorScheme.primary.withOpacity(0.7),
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: colorScheme.primary.withOpacity(0.3),
-                              blurRadius: 20,
-                              offset: const Offset(0, 8),
-                            ),
-                          ],
-                        ),
-                        child: const Icon(
-                          Icons.account_balance_wallet_rounded,
-                          size: 50,
-                          color: Colors.white,
-                        ),
+                padding: const EdgeInsets.fromLTRB(24, 60, 24, 24),
+                physics: const BouncingScrollPhysics(),
+                child: Column(
+                  children: [
+                    // Header Text (On top of gradient)
+                    const Text(
+                      'Create Account',
+                      style: TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        letterSpacing: 0.5,
                       ),
-                      
-                      const SizedBox(height: 32),
-                      
-                      Text(
-                        'Create Account',
-                        style: textTheme.headlineLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF0F172A),
-                          fontSize: 32,
-                          letterSpacing: -0.5,
-                        ),
-                        textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Join Kampus Koin today.',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.white.withOpacity(0.9),
                       ),
-                      
-                      const SizedBox(height: 12),
-                      
-                      Text(
-                        'Start your savings journey today',
-                        style: textTheme.bodyLarge?.copyWith(
-                          color: const Color(0xFF64748B),
-                          fontSize: 16,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      
-                      const SizedBox(height: 48),
+                    ),
+                    const SizedBox(height: 32),
 
-                      // Form Fields
-                      ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 500),
+                    // Registration Form Card
+                    Container(
+                      padding: const EdgeInsets.all(32),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(32),
+                        boxShadow: [
+                          BoxShadow(
+                            color: colorScheme.primary.withOpacity(0.1),
+                            blurRadius: 30,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
+                      ),
+                      child: Form(
+                        key: _formKey,
                         child: Column(
                           children: [
                             _buildModernTextField(
@@ -159,6 +178,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                               label: 'Full Name',
                               hint: 'John Doe',
                               icon: Icons.person_outline_rounded,
+                              colorScheme: colorScheme,
                               validator: (value) => (value == null || value.isEmpty)
                                   ? 'Please enter your name'
                                   : null,
@@ -168,8 +188,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                             _buildModernTextField(
                               controller: _emailController,
                               label: 'Email',
-                              hint: 'email@gmail.com',
+                              hint: 'student@example.com',
                               icon: Icons.email_outlined,
+                              colorScheme: colorScheme,
                               keyboardType: TextInputType.emailAddress,
                               validator: (value) => (value == null || !value.contains('@'))
                                   ? 'Please enter a valid email'
@@ -180,8 +201,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                             _buildModernTextField(
                               controller: _phoneController,
                               label: 'Phone Number',
-                              hint: '254712345678',
+                              hint: '0712345678',
                               icon: Icons.phone_outlined,
+                              colorScheme: colorScheme,
                               keyboardType: TextInputType.phone,
                               validator: (value) => (value == null || value.length < 10)
                                   ? 'Enter a valid phone number'
@@ -192,16 +214,18 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                             _buildModernTextField(
                               controller: _studentIdController,
                               label: 'Student ID (Optional)',
-                              hint: 'DSU123456',
+                              hint: 'DSU-001',
                               icon: Icons.school_outlined,
+                              colorScheme: colorScheme,
                             ),
                             const SizedBox(height: 20),
 
                             _buildModernTextField(
                               controller: _passwordController,
                               label: 'Password',
-                              hint: 'Create a strong password',
+                              hint: '••••••••',
                               icon: Icons.lock_outline_rounded,
+                              colorScheme: colorScheme,
                               obscureText: _obscurePassword,
                               validator: (value) => (value == null || value.length < 6)
                                   ? 'Min 6 characters'
@@ -209,9 +233,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                               suffixIcon: IconButton(
                                 icon: Icon(
                                   _obscurePassword
-                                      ? Icons.visibility_off_rounded
-                                      : Icons.visibility_rounded,
-                                  color: const Color(0xFF94A3B8),
+                                      ? Icons.visibility_off_outlined
+                                      : Icons.visibility_outlined,
+                                  color: Colors.grey[400],
                                 ),
                                 onPressed: () {
                                   setState(() {
@@ -221,77 +245,80 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                               ),
                             ),
 
-                            const SizedBox(height: 40),
-                            Row(
-                  children: [
-                    SizedBox(
-                      height: 24,
-                      width: 24,
-                      child: Checkbox(
-                        value: _agreedToTerms,
-                        activeColor: colorScheme.primary,
-                        onChanged: (value) {
-                          setState(() => _agreedToTerms = value!);
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: RichText(
-                        text: TextSpan(
-                          text: 'I agree to the ',
-                          style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                          children: [
-                            TextSpan(
-                              text: 'Terms of Service',
-                              style: TextStyle(
-                                color: colorScheme.primary,
-                                fontWeight: FontWeight.bold,
-                                decoration: TextDecoration.underline,
-                              ),
-                              recognizer: TapGestureRecognizer()
-                                ..onTap = () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => const LegalPage(
-                                        title: 'Terms of Service',
-                                        content: LegalContent.termsOfService,
-                                      ),
-                                    ),
-                                  );
-                                },
-                            ),
-                            const TextSpan(text: ' and '),
-                            TextSpan(
-                              text: 'Privacy Policy',
-                              style: TextStyle(
-                                color: colorScheme.primary,
-                                fontWeight: FontWeight.bold,
-                                decoration: TextDecoration.underline,
-                              ),
-                              recognizer: TapGestureRecognizer()
-                                ..onTap = () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => const LegalPage(
-                                        title: 'Privacy Policy',
-                                        content: LegalContent.privacyPolicy,
-                                      ),
-                                    ),
-                                  );
-                                },
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
+                            const SizedBox(height: 24),
 
-                            // Create Account Button
+                            // Terms Checkbox
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                SizedBox(
+                                  height: 24,
+                                  width: 24,
+                                  child: Checkbox(
+                                    value: _agreedToTerms,
+                                    activeColor: colorScheme.primary,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                                    onChanged: (value) {
+                                      setState(() => _agreedToTerms = value!);
+                                    },
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: RichText(
+                                    text: TextSpan(
+                                      text: 'I agree to the ',
+                                      style: TextStyle(color: Colors.grey[600], fontSize: 13, height: 1.4),
+                                      children: [
+                                        TextSpan(
+                                          text: 'Terms of Service',
+                                          style: TextStyle(
+                                            color: colorScheme.primary,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                          recognizer: TapGestureRecognizer()
+                                            ..onTap = () {
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (context) => const LegalPage(
+                                                    title: 'Terms of Service',
+                                                    content: LegalContent.termsOfService,
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                        ),
+                                        const TextSpan(text: ' and '),
+                                        TextSpan(
+                                          text: 'Privacy Policy',
+                                          style: TextStyle(
+                                            color: colorScheme.primary,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                          recognizer: TapGestureRecognizer()
+                                            ..onTap = () {
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (context) => const LegalPage(
+                                                    title: 'Privacy Policy',
+                                                    content: LegalContent.privacyPolicy,
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+
+                            const SizedBox(height: 32),
+
+                            // Submit Button
                             SizedBox(
                               width: double.infinity,
                               height: 56,
@@ -302,40 +329,36 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: colorScheme.primary,
                                   foregroundColor: Colors.white,
+                                  elevation: 4,
+                                  shadowColor: colorScheme.primary.withOpacity(0.4),
                                   disabledBackgroundColor: Colors.grey[300],
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(16),
                                   ),
-                                  elevation: 0,
-                                  shadowColor: colorScheme.primary.withOpacity(0.3),
                                 ),
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    gradient: authState.status != AuthStatus.loading
-                                        ? LinearGradient(
-                                            colors: [
-                                              colorScheme.primary,
-                                              colorScheme.primary.withOpacity(0.8),
-                                            ],
-                                          )
-                                        : null,
-                                  ),
-                                  alignment: Alignment.center,
-                                  child: const Text(
-                                    'Create Account',
-                                    style: TextStyle(
-                                      fontSize: 17,
-                                      fontWeight: FontWeight.w700,
-                                      letterSpacing: 0.3,
-                                    ),
-                                  ),
-                                ),
+                                child: authState.status == AuthStatus.loading
+                                    ? const SizedBox(
+                                        height: 24,
+                                        width: 24,
+                                        child: CircularProgressIndicator(
+                                          color: Colors.white,
+                                          strokeWidth: 2,
+                                        ),
+                                      )
+                                    : const Text(
+                                        'Create Account',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                          letterSpacing: 0.5,
+                                        ),
+                                      ),
                               ),
                             ),
                             
                             const SizedBox(height: 24),
                             
-                            // Already have account link
+                            // Bottom Link
                             Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
@@ -343,7 +366,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                   'Already have an account? ',
                                   style: TextStyle(
                                     color: Colors.grey[600],
-                                    fontSize: 15,
+                                    fontSize: 14,
                                   ),
                                 ),
                                 GestureDetector(
@@ -352,8 +375,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                     'Sign In',
                                     style: TextStyle(
                                       color: colorScheme.primary,
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w700,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
                                     ),
                                   ),
                                 ),
@@ -362,10 +385,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           ],
                         ),
                       ),
-                      
-                      const SizedBox(height: 40),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -384,6 +405,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     required String label,
     required String hint,
     required IconData icon,
+    required ColorScheme colorScheme,
     bool obscureText = false,
     TextInputType? keyboardType,
     Widget? suffixIcon,
@@ -392,83 +414,48 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 8),
-          child: Text(
-            label,
-            style: const TextStyle(
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF334155),
-              fontSize: 14,
-              letterSpacing: 0.2,
-            ),
+        Text(
+          label,
+          style: TextStyle(
+            color: Colors.grey[700],
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
           ),
         ),
+        const SizedBox(height: 8),
         TextFormField(
           controller: controller,
           obscureText: obscureText,
           keyboardType: keyboardType,
           validator: validator,
-          style: const TextStyle(
-            fontSize: 16,
-            color: Color(0xFF0F172A),
-          ),
+          style: const TextStyle(fontWeight: FontWeight.w500),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: const TextStyle(
-              color: Color(0xFFCBD5E1),
-              fontSize: 15,
-            ),
-            prefixIcon: Icon(
-              icon,
-              color: const Color(0xFF94A3B8),
-              size: 22,
-            ),
+            hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
+            prefixIcon: Icon(icon, color: colorScheme.primary.withOpacity(0.6), size: 22),
             suffixIcon: suffixIcon,
             filled: true,
-            fillColor: const Color(0xFFF8FAFC),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 20,
-              vertical: 18,
-            ),
+            fillColor: const Color(0xFFF5F7FA), // Very light grey fill
+            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(
-                color: Color(0xFFE2E8F0),
-                width: 1.5,
-              ),
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide.none,
             ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(
-                color: Color(0xFFE2E8F0),
-                width: 1.5,
-              ),
+              borderRadius: BorderRadius.circular(16),
+              borderSide: const BorderSide(color: Colors.transparent),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: BorderSide(
-                color: Theme.of(context).colorScheme.primary,
-                width: 2,
-              ),
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(color: colorScheme.primary, width: 1.5),
             ),
             errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(
-                color: Color(0xFFEF4444),
-                width: 1.5,
-              ),
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(color: colorScheme.error, width: 1),
             ),
             focusedErrorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(
-                color: Color(0xFFEF4444),
-                width: 2,
-              ),
-            ),
-            errorStyle: const TextStyle(
-              color: Color(0xFFEF4444),
-              fontSize: 13,
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(color: colorScheme.error, width: 1.5),
             ),
           ),
         ),

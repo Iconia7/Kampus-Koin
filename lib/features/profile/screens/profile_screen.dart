@@ -19,32 +19,43 @@ class ProfileScreen extends ConsumerWidget {
     final userData = ref.watch(userDataProvider);
     final ordersData = ref.watch(ordersProvider);
     final transactionsData = ref.watch(transactionsProvider);
-    final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      backgroundColor: colorScheme.surface,
+      backgroundColor: const Color(0xFFF5F7FA), // Consistent light grey background
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: const Text(
           'My Profile',
-          style: TextStyle(fontWeight: FontWeight.w600),
+          style: TextStyle(fontWeight: FontWeight.w600, color: Colors.white),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
+        centerTitle: true,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.edit_rounded),
-            tooltip: 'Edit Profile',
-            onPressed: () {
-              context.push('/edit-profile');
-            },
+          Container(
+            margin: const EdgeInsets.only(right: 8),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              shape: BoxShape.circle,
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.edit_rounded, color: Colors.white),
+              tooltip: 'Edit Profile',
+              onPressed: () => context.push('/edit-profile'),
+            ),
           ),
-          IconButton(
-    icon: const Icon(Icons.settings_outlined, color: Colors.black),
-    onPressed: () => context.push('/settings'),
-  ),
-          const SizedBox(width: 8),
+          Container(
+            margin: const EdgeInsets.only(right: 16),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              shape: BoxShape.circle,
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.settings_rounded, color: Colors.white),
+              onPressed: () => context.push('/settings'),
+            ),
+          ),
         ],
       ),
       body: RefreshIndicator(
@@ -54,177 +65,150 @@ class ProfileScreen extends ConsumerWidget {
           ref.invalidate(transactionsProvider);
         },
         child: CustomScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
+          physics: const BouncingScrollPhysics(),
           slivers: [
-            // --- User Info Section ---
+            // --- User Header Section ---
             SliverToBoxAdapter(
               child: userData.when(
-                loading: () => const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(50.0),
-                    child: CircularProgressIndicator(),
-                  ),
+                loading: () => const SizedBox(
+                  height: 350,
+                  child: Center(child: CircularProgressIndicator(color: Colors.white)),
                 ),
-                error: (e, s) => Center(child: Text('Error: $e')),
+                error: (e, s) => Container(
+                  height: 200,
+                  color: colorScheme.primary,
+                  child: Center(child: Text('Error: $e', style: const TextStyle(color: Colors.white))),
+                ),
                 data: (user) => Stack(
+                  alignment: Alignment.center,
                   children: [
-                    // Gradient Background
+                    // 1. Gradient Background
                     Container(
-                      height: 390,
+                      height: 360,
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
                             colorScheme.primary,
-                            colorScheme.primary.withOpacity(0.8),
-                            colorScheme.secondary,
+                            const Color(0xFF4A00E0), // Deep blue/purple
                           ],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
                         borderRadius: const BorderRadius.only(
-                          bottomLeft: Radius.circular(80),
-                          bottomRight: Radius.circular(80),
+                          bottomLeft: Radius.circular(40),
+                          bottomRight: Radius.circular(40),
                         ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: colorScheme.primary.withOpacity(0.3),
+                            blurRadius: 20,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
                       ),
                     ),
-                    // Decorative circles
+                    
+                    // 2. Decorative Circles
                     Positioned(
-                      top: -40,
-                      right: -40,
-                      child: Container(
-                        width: 180,
-                        height: 180,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white.withOpacity(0.1),
-                        ),
-                      ),
+                      top: -60,
+                      left: -40,
+                      child: CircleAvatar(radius: 80, backgroundColor: Colors.white.withOpacity(0.05)),
                     ),
                     Positioned(
-                      top: 120,
-                      left: -30,
-                      child: Container(
-                        width: 120,
-                        height: 120,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white.withOpacity(0.05),
-                        ),
-                      ),
+                      bottom: 60,
+                      right: -30,
+                      child: CircleAvatar(radius: 60, backgroundColor: Colors.white.withOpacity(0.05)),
                     ),
-                    // Content
-                    Padding(
-                      padding: const EdgeInsets.all(24.0),
+
+                    // 3. User Info
+                    Positioned(
+                      bottom: 40,
+                      left: 0,
+                      right: 0,
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const SizedBox(height: 80),
-                          // Profile Avatar
-                          Center(
-                            child: Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: Colors.white,
-                                  width: 3,
+                          // Avatar with border
+                          Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 3),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.15),
+                                  blurRadius: 20,
+                                  offset: const Offset(0, 8),
                                 ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.2),
-                                    blurRadius: 15,
-                                    offset: const Offset(0, 5),
-                                  ),
-                                ],
-                              ),
-                              child: CircleAvatar(
-                                radius: 50,
-                                backgroundColor: Colors.white,
-                                child: Text(
-                                  user.name.isNotEmpty 
-                                      ? user.name[0].toUpperCase()
-                                      : '?',
-                                  style: TextStyle(
-                                    fontSize: 40,
-                                    fontWeight: FontWeight.bold,
-                                    color: colorScheme.primary,
-                                  ),
+                              ],
+                            ),
+                            child: CircleAvatar(
+                              radius: 50,
+                              backgroundColor: Colors.white,
+                              child: Text(
+                                user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
+                                style: TextStyle(
+                                  fontSize: 40,
+                                  fontWeight: FontWeight.bold,
+                                  color: colorScheme.primary,
                                 ),
                               ),
                             ),
                           ),
-                          const SizedBox(height: 20),
-                          // User Info
-                          Center(
-                            child: Column(
-                              children: [
-                                Text(
-                                  user.name,
-                                  style: textTheme.headlineLarge?.copyWith(
-                                    color: Colors.white,
-                                    fontSize: 28,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                  textAlign: TextAlign.center,
+                          const SizedBox(height: 16),
+                          
+                          // Name
+                          Text(
+                            user.name,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          
+                          // Chips for Email/Phone
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.15),
+                                  borderRadius: BorderRadius.circular(20),
                                 ),
-                                const SizedBox(height: 8),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.email_outlined, color: Colors.white70, size: 14),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      user.email,
+                                      style: const TextStyle(color: Colors.white, fontSize: 12),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              if (user.phoneNumber != null) ...[
+                                const SizedBox(width: 8),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 6,
-                                  ),
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                   decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.2),
+                                    color: Colors.white.withOpacity(0.15),
                                     borderRadius: BorderRadius.circular(20),
                                   ),
                                   child: Row(
-                                    mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      const Icon(
-                                        Icons.email_outlined,
-                                        color: Colors.white,
-                                        size: 16,
-                                      ),
+                                      const Icon(Icons.phone_outlined, color: Colors.white70, size: 14),
                                       const SizedBox(width: 6),
                                       Text(
-                                        user.email,
-                                        style: textTheme.bodyMedium?.copyWith(
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 6,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.2),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const Icon(
-                                        Icons.phone_outlined,
-                                        color: Colors.white,
-                                        size: 16,
-                                      ),
-                                      const SizedBox(width: 6),
-                                      Text(
-                                        user.phoneNumber ?? 'No phone number',
-                                        style: textTheme.bodyMedium?.copyWith(
-                                          color: Colors.white,
-                                        ),
+                                        user.phoneNumber!,
+                                        style: const TextStyle(color: Colors.white, fontSize: 12),
                                       ),
                                     ],
                                   ),
                                 ),
                               ],
-                            ),
+                            ],
                           ),
                         ],
                       ),
@@ -234,121 +218,78 @@ class ProfileScreen extends ConsumerWidget {
               ),
             ),
 
-            // --- "My Financed Items" Section ---
+            // --- Financed Items Header ---
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(24, 32, 24, 16),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
+                    const Text(
                       'Financed Items',
-                      style: textTheme.headlineMedium?.copyWith(
+                      style: TextStyle(
                         fontWeight: FontWeight.bold,
-                        fontSize: 22,
+                        fontSize: 20,
+                        color: Colors.black87,
                       ),
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: colorScheme.primary.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: ordersData.when(
-                        data: (orders) => Text(
-                          '${orders.length} item${orders.length != 1 ? 's' : ''}',
-                          style: textTheme.bodySmall?.copyWith(
+                    ordersData.when(
+                      data: (orders) => Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: colorScheme.primary.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          '${orders.length} Active',
+                          style: TextStyle(
                             color: colorScheme.primary,
                             fontWeight: FontWeight.bold,
+                            fontSize: 12,
                           ),
                         ),
-                        loading: () => const SizedBox(
-                          width: 50,
-                          child: Text('...'),
-                        ),
-                        error: (_, __) => const Text('0'),
                       ),
+                      loading: () => const SizedBox.shrink(),
+                      error: (_, __) => const SizedBox.shrink(),
                     ),
                   ],
                 ),
               ),
             ),
+
+            // --- Financed Items List ---
             ordersData.when(
-              loading: () => const SliverToBoxAdapter(
-                child: Center(child: CircularProgressIndicator()),
-              ),
-              error: (e, s) => SliverToBoxAdapter(
-                child: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24.0),
-                    child: Column(
-                      children: [
-                        Icon(
-                          Icons.error_outline,
-                          size: 64,
-                          color: Colors.grey[400],
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Could not load orders',
-                          style: TextStyle(
-                            fontSize: 18,
-                            color: Colors.grey[600],
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
+              loading: () => const SliverToBoxAdapter(child: Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()))),
+              error: (e, s) => SliverToBoxAdapter(child: Center(child: Text('Error loading orders'))),
               data: (orders) {
                 if (orders.isEmpty) {
                   return SliverToBoxAdapter(
-                    child: Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(32.0),
-                        child: Column(
-                          children: [
-                            Icon(
-                              Icons.shopping_cart_outlined,
-                              size: 64,
-                              color: Colors.grey[400],
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'No financed items yet',
-                              style: TextStyle(
-                                fontSize: 18,
-                                color: Colors.grey[600],
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Visit the marketplace to get started!',
-                              style: TextStyle(color: Colors.grey[500]),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        ),
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 24),
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.grey.shade100),
+                      ),
+                      child: Column(
+                        children: [
+                          Icon(Icons.shopping_bag_outlined, size: 48, color: Colors.grey[300]),
+                          const SizedBox(height: 12),
+                          Text(
+                            'No active orders',
+                            style: TextStyle(color: Colors.grey[500], fontWeight: FontWeight.w600),
+                          ),
+                        ],
                       ),
                     ),
                   );
                 }
                 return SliverPadding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
                   sliver: SliverList(
                     delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 16.0),
-                          child: OrderListItem(order: orders[index]),
-                        );
-                      },
+                      (context, index) => OrderListItem(order: orders[index]),
                       childCount: orders.length,
                     ),
                   ),
@@ -356,92 +297,39 @@ class ProfileScreen extends ConsumerWidget {
               },
             ),
 
-            // --- Transaction History Section ---
+            // --- Transaction History Header ---
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(24, 32, 24, 16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Transaction History',
-                      style: textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 22,
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: colorScheme.secondary.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: transactionsData.when(
-                        data: (transactions) => Text(
-                          '${transactions.length}',
-                          style: textTheme.bodySmall?.copyWith(
-                            color: colorScheme.secondary,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        loading: () => const Text('...'),
-                        error: (_, __) => const Text('0'),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            transactionsData.when(
-              loading: () => const SliverToBoxAdapter(
-                child: Center(child: CircularProgressIndicator()),
-              ),
-              error: (e, s) => SliverToBoxAdapter(
-                child: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24.0),
-                    child: Text('Could not load transactions: $e'),
+                child: const Text(
+                  'Transaction History',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20,
+                    color: Colors.black87,
                   ),
                 ),
               ),
+            ),
+
+            // --- Transaction List ---
+            transactionsData.when(
+              loading: () => const SliverToBoxAdapter(child: SizedBox(height: 100, child: Center(child: CircularProgressIndicator()))),
+              error: (e, s) => const SliverToBoxAdapter(child: SizedBox.shrink()),
               data: (transactions) {
                 if (transactions.isEmpty) {
                   return SliverToBoxAdapter(
-                    child: Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(32.0),
-                        child: Column(
-                          children: [
-                            Icon(
-                              Icons.receipt_long_outlined,
-                              size: 64,
-                              color: Colors.grey[400],
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'No transactions yet',
-                              style: TextStyle(
-                                fontSize: 18,
-                                color: Colors.grey[600],
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
+                    child: Center(child: Padding(
+                      padding: const EdgeInsets.all(24.0),
+                      child: Text("No transaction history yet.", style: TextStyle(color: Colors.grey[500])),
+                    )),
                   );
                 }
                 return SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 40),
                   sliver: SliverList(
                     delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        return TransactionListItem(tx: transactions[index]);
-                      },
+                      (context, index) => TransactionListItem(tx: transactions[index]),
                       childCount: transactions.length,
                     ),
                   ),
@@ -455,258 +343,143 @@ class ProfileScreen extends ConsumerWidget {
   }
 }
 
-// --- REDESIGNED ORDER LIST ITEM ---
+// --- MODERN ORDER CARD ---
 class OrderListItem extends StatelessWidget {
   final Order order;
   const OrderListItem({super.key, required this.order});
 
   @override
   Widget build(BuildContext context) {
-    final currencyFormatter = NumberFormat.currency(
-      locale: 'en_KE',
-      symbol: 'KES ',
-    );
+    final currencyFormatter = NumberFormat.currency(locale: 'en_KE', symbol: 'KES ', decimalDigits: 0);
     final double amountDue = order.amountFinanced - order.amountPaid;
     final double progress = order.amountFinanced > 0
         ? (order.amountPaid / order.amountFinanced).clamp(0.0, 1.0)
         : 1.0;
     final bool isPaid = order.status == 'PAID';
     final colorScheme = Theme.of(context).colorScheme;
-    final progressPercentage = (progress * 100).toInt();
 
     return Container(
+      margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: isPaid
-                ? Colors.green.withOpacity(0.2)
-                : colorScheme.primary.withOpacity(0.1),
-            blurRadius: 15,
-            offset: const Offset(0, 4),
+            color: const Color(0xFF9E9E9E).withOpacity(0.1),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: Stack(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Background Progress Indicator
-            Positioned(
-              left: 0,
-              top: 0,
-              bottom: 0,
-              child: Container(
-                width: MediaQuery.of(context).size.width * progress,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: isPaid
-                        ? [
-                            Colors.green.withOpacity(0.1),
-                            Colors.green.withOpacity(0.05)
-                          ]
-                        : [
-                            colorScheme.primary.withOpacity(0.1),
-                            colorScheme.primary.withOpacity(0.05),
-                          ],
-                  ),
-                ),
-              ),
-            ),
-            // Status Badge
-            if (isPaid)
-              Positioned(
-                top: 10,
-                right: 80,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
+            // Header Row
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: Colors.green,
-                    borderRadius: BorderRadius.circular(20),
+                    color: isPaid ? Colors.green.withOpacity(0.1) : colorScheme.primary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
+                  child: Icon(
+                    isPaid ? Icons.check_circle_outline : Icons.inventory_2_outlined,
+                    color: isPaid ? Colors.green : colorScheme.primary,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(
-                        Icons.check_circle,
-                        size: 10,
-                        color: Colors.white,
-                      ),
-                      SizedBox(width: 4),
                       Text(
-                        'Paid',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
+                        order.product.name,
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Ordered on ${order.orderDate != null ? DateFormat('MMM d').format(order.orderDate!) : 'Unknown Date'}',
+                        style: TextStyle(color: Colors.grey[500], fontSize: 12),
                       ),
                     ],
                   ),
                 ),
-              ),
-            // Content
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              order.product.name,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleLarge
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 18,
-                                  ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              '${currencyFormatter.format(order.amountPaid)} of ${currencyFormatter.format(order.amountFinanced)}',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodyMedium
-                                  ?.copyWith(
-                                    color: Colors.grey[600],
-                                  ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      // Circular Progress
-                      SizedBox(
-                        width: 50,
-                        height: 50,
-                        child: Stack(
-                          alignment: Alignment.center, // <--- 1. Centers everything
-                          fit: StackFit.expand,
-                          children: [
-                            CircularProgressIndicator(
-                              value: progress,
-                              strokeWidth: 5,
-                              backgroundColor: Colors.grey[200],
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                isPaid ? Colors.green : colorScheme.primary,
-                              ),
-                            ),
-                            Center(
-                              child: Text(
-                                '$progressPercentage%',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  color: isPaid
-                                      ? Colors.green
-                                      : colorScheme.primary,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+                if (isPaid)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Text('PAID', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 10)),
                   ),
-                  if (!isPaid) ...[
-                    const SizedBox(height: 16),
-                    Text(
-                      '${currencyFormatter.format(amountDue)} remaining',
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            color: colorScheme.primary,
-                            fontWeight: FontWeight.w600,
-                          ),
-                    ),
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          showModalBottomSheet(
-                            context: context,
-                            isScrollControlled: true,
-                            backgroundColor: Colors.transparent,
-                            builder: (ctx) => Container(
-                              decoration: const BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.vertical(
-                                  top: Radius.circular(20),
-                                ),
-                              ),
-                              child: RepaymentForm(
-                                orderId: order.id,
-                                productName: order.product.name,
-                                amountDue: amountDue,
-                              ),
-                            ),
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: colorScheme.primary,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          elevation: 0,
-                        ),
-                        child: const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.payment, size: 20),
-                            SizedBox(width: 8),
-                            Text(
-                              'Make a Repayment',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 15,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ] else ...[
-                    const SizedBox(height: 16),
-                    Container(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      decoration: BoxDecoration(
-                        color: Colors.green,
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.check_circle_rounded,
-                            color: Colors.white,
-                            size: 20,
-                          ),
-                          SizedBox(width: 8),
-                          Text(
-                            'Paid in Full! 🎉',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 15,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ],
+              ],
+            ),
+            
+            const SizedBox(height: 20),
+
+            // Progress Bar
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Paid: ${currencyFormatter.format(order.amountPaid)}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey)),
+                Text(currencyFormatter.format(order.amountFinanced), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+              ],
+            ),
+            const SizedBox(height: 8),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: progress,
+                minHeight: 8,
+                backgroundColor: Colors.grey[100],
+                valueColor: AlwaysStoppedAnimation<Color>(isPaid ? Colors.green : colorScheme.primary),
               ),
             ),
+
+            if (!isPaid) ...[
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: () {
+                    showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      builder: (ctx) => Container(
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                        ),
+                        child: RepaymentForm(
+                          orderId: order.id,
+                          productName: order.product.name,
+                          amountDue: amountDue,
+                        ),
+                      ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: colorScheme.surface, // Light background
+                    foregroundColor: colorScheme.primary, // Dark text
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: BorderSide(color: colorScheme.primary.withOpacity(0.2)),
+                    ),
+                  ),
+                  child: const Text('Make Repayment', style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
+              ),
+            ]
           ],
         ),
       ),
@@ -714,53 +487,34 @@ class OrderListItem extends StatelessWidget {
   }
 }
 
-// --- REDESIGNED TRANSACTION LIST ITEM ---
+// --- MODERN TRANSACTION ITEM ---
 class TransactionListItem extends StatelessWidget {
   final Transaction tx;
   const TransactionListItem({super.key, required this.tx});
 
   @override
   Widget build(BuildContext context) {
-    final currencyFormatter = NumberFormat.currency(
-      locale: 'en_KE',
-      symbol: 'KES ',
-    );
-    final dateFormat = DateFormat('MMM d, yyyy');
-    final timeFormat = DateFormat('h:mm a');
-
-    IconData icon;
-    Color bgColor;
-    Color iconColor;
-    String amountText;
-    String title;
-
+    final currencyFormatter = NumberFormat.currency(locale: 'en_KE', symbol: 'KES ', decimalDigits: 0);
+    final dateFormat = DateFormat('MMM d, h:mm a');
     final isDeposit = tx.transactionType == 'DEPOSIT';
-
-    switch (tx.status) {
-      case 'completed':
-        icon = isDeposit ? Icons.arrow_downward_rounded : Icons.arrow_upward_rounded;
-        bgColor = isDeposit ? Colors.green.withOpacity(0.1) : Colors.orange.withOpacity(0.1);
-        iconColor = isDeposit ? Colors.green : Colors.orange.shade700;
-        amountText = (tx.amount ?? 0) > 0
-            ? (isDeposit
-                ? '+ ${currencyFormatter.format(tx.amount)}'
-                : '- ${currencyFormatter.format(tx.amount)}')
-            : currencyFormatter.format(tx.amount);
-        title = isDeposit ? 'Goal Deposit' : 'Order Repayment';
-        break;
-      case 'pending':
-        icon = Icons.pending_rounded;
-        bgColor = Colors.grey.shade200;
-        iconColor = Colors.grey.shade600;
-        amountText = currencyFormatter.format(tx.amount);
-        title = isDeposit ? 'Pending Deposit' : 'Pending Repayment';
-        break;
-      default: // 'failed'
-        icon = Icons.close_rounded;
-        bgColor = Colors.red.withOpacity(0.1);
-        iconColor = Colors.red;
-        amountText = currencyFormatter.format(tx.amount);
-        title = isDeposit ? 'Failed Deposit' : 'Failed Repayment';
+    
+    // Config based on status
+    Color iconBg;
+    Color iconColor;
+    IconData icon;
+    
+    if (tx.status == 'failed') {
+      iconBg = Colors.red.withOpacity(0.1);
+      iconColor = Colors.red;
+      icon = Icons.close;
+    } else if (isDeposit) {
+      iconBg = Colors.green.withOpacity(0.1);
+      iconColor = Colors.green;
+      icon = Icons.arrow_downward_rounded;
+    } else {
+      iconBg = Colors.orange.withOpacity(0.1);
+      iconColor = Colors.orange;
+      icon = Icons.arrow_upward_rounded;
     }
 
     return Container(
@@ -769,68 +523,41 @@ class TransactionListItem extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        border: Border.all(color: Colors.grey.shade100),
       ),
       child: Row(
         children: [
-          // Icon
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: bgColor,
+              color: iconBg,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(icon, color: iconColor, size: 24),
+            child: Icon(icon, color: iconColor, size: 20),
           ),
           const SizedBox(width: 16),
-          // Details
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                  ),
+                  isDeposit ? 'Goal Deposit' : 'Loan Repayment',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 Text(
-                  tx.transactionDate != null
-                      ? '${dateFormat.format(tx.transactionDate!)} • ${timeFormat.format(tx.transactionDate!)}'
-                      : 'Processing...',
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: 13,
-                  ),
+                  tx.transactionDate != null ? dateFormat.format(tx.transactionDate!) : 'Processing',
+                  style: TextStyle(color: Colors.grey[500], fontSize: 12),
                 ),
-                if (tx.mpesaReceiptNumber != null) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    'Ref: ${tx.mpesaReceiptNumber}',
-                    style: TextStyle(
-                      color: Colors.grey[500],
-                      fontSize: 11,
-                    ),
-                  ),
-                ],
               ],
             ),
           ),
-          // Amount
           Text(
-            amountText,
+            '${isDeposit ? '+' : '-'} ${currencyFormatter.format(tx.amount)}',
             style: TextStyle(
               fontWeight: FontWeight.bold,
-              color: iconColor,
-              fontSize: 16,
+              fontSize: 15,
+              color: isDeposit ? Colors.green : Colors.black87,
             ),
           ),
         ],
