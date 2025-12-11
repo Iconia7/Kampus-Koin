@@ -122,3 +122,15 @@ Contributions are welcome! Please fork the repository and create a pull request 
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 📞 Contact
+
+**Nexora Creatives**
+
+- **Email**: mwanginewton239@gmail.com
+- **Phone Number**: +254115332870
+- **Developer**: Newton Mwangi
+
+---
+
+*Built with ❤️ by Nexora Creatives Tech Team.*
