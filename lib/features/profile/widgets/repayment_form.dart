@@ -1,9 +1,10 @@
-// lib/features/profile/widgets/repayment_form.dart
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kampus_koin_app/features/profile/providers/repayment_notifier.dart';
+import 'package:kampus_koin_app/features/profile/providers/orders_provider.dart';
+import 'package:kampus_koin_app/features/home/providers/payment_polling_service.dart'; 
+import 'package:kampus_koin_app/core/services/notification_service.dart'; 
 
 class RepaymentForm extends ConsumerStatefulWidget {
   final int orderId;
@@ -35,21 +36,95 @@ class _RepaymentFormState extends ConsumerState<RepaymentForm> {
     FocusScope.of(context).unfocus();
 
     if (_formKey.currentState!.validate()) {
+      // 1. Capture current amount paid BEFORE repayment
+      final ordersList = ref.read(ordersProvider).value;
+      final currentOrder = ordersList?.firstWhere(
+        (o) => o.id == widget.orderId, 
+        orElse: () => throw Exception('Order not found'),
+      );
+      final double startPaidAmount = (currentOrder?.amountPaid ?? 0).toDouble();
+
+      // 2. Send STK Push Request
       final success = await ref
           .read(repaymentNotifierProvider.notifier)
           .repayOrder(widget.orderId, _amountController.text.trim());
 
       if (success && mounted) {
-        Navigator.of(context).pop(); // Close the bottom sheet
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Repayment STK push sent! Check your phone to enter your PIN.',
+        // FIX 1: Capture ALL dependencies BEFORE popping context.
+        // Once popped, 'ref' and 'context' become unsafe to access.
+        final messenger = ScaffoldMessenger.of(context);
+        ref.read(notificationServiceProvider); // Capture Service
+
+        // 3. Close the bottom sheet immediately
+        Navigator.of(context).pop(); 
+        
+        // 4. Show "Waiting" SnackBar
+        messenger.showSnackBar(
+          SnackBar(
+            content: const Row(
+              children: [
+                SizedBox(
+                  width: 20, height: 20, 
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)
+                ),
+                SizedBox(width: 16),
+                Expanded(
+                  child: Text(
+                    'Repayment initiated. Waiting for M-Pesa...',
+                    style: TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                ),
+              ],
             ),
-            backgroundColor: Colors.green,
+            backgroundColor: Colors.black87,
             behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 60), 
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            margin: const EdgeInsets.all(16),
           ),
         );
+
+        // 5. Start Polling
+        // (Note: We still use 'ref' here because we haven't yielded execution yet, 
+        // but it's safer to use the ref we read earlier if we had captured the provider itself)
+        final isConfirmed = await ref
+            .read(paymentPollingProvider)
+            .waitForRepaymentConfirmation(widget.orderId, startPaidAmount);
+
+        messenger.clearSnackBars();
+
+        if (isConfirmed) {
+          // FIX 2: Removed 'ref.invalidate(...)' calls.
+          // The PaymentPollingService now handles invalidation internally.
+          // Calling it here caused the "Bad State" error.
+
+          messenger.showSnackBar(
+            SnackBar(
+              content: const Row(
+                children: [
+                  Icon(Icons.check_circle_rounded, color: Colors.white),
+                  SizedBox(width: 12),
+                  Text('Payment confirmed! Balance updated.'),
+                ],
+              ),
+              backgroundColor: Colors.green[700],
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              margin: const EdgeInsets.all(16),
+            ),
+          );
+        } else {
+          // TIMEOUT
+          messenger.showSnackBar(
+            SnackBar(
+              content: const Text('Still waiting. Pull down to refresh history later.'),
+              backgroundColor: Colors.orange[800],
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              margin: const EdgeInsets.all(16),
+            ),
+          );
+        }
       }
     }
   }
@@ -72,7 +147,7 @@ class _RepaymentFormState extends ConsumerState<RepaymentForm> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // 1. Drag Handle
+            // Drag Handle
             Center(
               child: Container(
                 width: 40,
@@ -85,10 +160,10 @@ class _RepaymentFormState extends ConsumerState<RepaymentForm> {
             ),
             const SizedBox(height: 24),
 
-            // 2. Header
-            Text(
+            // Header
+            const Text(
               'Make Repayment',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
                 color: Colors.black87,
@@ -108,11 +183,11 @@ class _RepaymentFormState extends ConsumerState<RepaymentForm> {
             
             const SizedBox(height: 24),
 
-            // 3. Balance Indicator
+            // Balance Indicator
             Container(
               padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
               decoration: BoxDecoration(
-                color: const Color(0xFFFFF7ED), // Light orange background
+                color: const Color(0xFFFFF7ED), 
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: const Color(0xFFFFEDD5)),
               ),
@@ -121,17 +196,17 @@ class _RepaymentFormState extends ConsumerState<RepaymentForm> {
                 children: [
                   Icon(Icons.info_outline_rounded, size: 18, color: colorScheme.secondary),
                   const SizedBox(width: 8),
-                  Text(
+                  const Text(
                     'Outstanding Balance: ',
                     style: TextStyle(
-                      color: colorScheme.secondary,
+                      color: Color(0xFFC2410C), 
                       fontWeight: FontWeight.w500,
                     ),
                   ),
                   Text(
                     'KES ${widget.amountDue.toStringAsFixed(0)}',
-                    style: TextStyle(
-                      color: colorScheme.secondary,
+                    style: const TextStyle(
+                      color: Color(0xFFC2410C),
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -141,7 +216,7 @@ class _RepaymentFormState extends ConsumerState<RepaymentForm> {
 
             const SizedBox(height: 32),
 
-            // 4. Amount Input Field
+            // Amount Input Field
             Text(
               'Amount to Repay',
               style: TextStyle(
@@ -159,11 +234,11 @@ class _RepaymentFormState extends ConsumerState<RepaymentForm> {
               decoration: InputDecoration(
                 hintText: 'e.g., 500',
                 hintStyle: TextStyle(color: Colors.grey[400]),
-                prefixIcon: const Icon(Icons.attach_money_rounded, color: Colors.grey), // Or 'KES' text prefix
+                prefixIcon: const Icon(Icons.attach_money_rounded, color: Colors.grey), 
                 prefixText: 'KES ',
                 prefixStyle: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
                 filled: true,
-                fillColor: const Color(0xFFF8FAFC), // Very light grey fill
+                fillColor: const Color(0xFFF8FAFC), 
                 contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
@@ -190,7 +265,7 @@ class _RepaymentFormState extends ConsumerState<RepaymentForm> {
 
             const SizedBox(height: 32),
 
-            // 5. Submit Button
+            // Submit Button
             SizedBox(
               width: double.infinity,
               height: 56,

@@ -1,9 +1,11 @@
-// lib/features/goals/widgets/deposit_form.dart
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:kampus_koin_app/core/services/notification_service.dart';
 import 'package:kampus_koin_app/features/goals/providers/deposit_notifier.dart';
+import 'package:kampus_koin_app/features/home/providers/goals_provider.dart';
+// IMPORTANT: Make sure this import points to the file we created in Phase 2
+import 'package:kampus_koin_app/features/home/providers/payment_polling_service.dart'; 
 
 class DepositForm extends ConsumerStatefulWidget {
   final int goalId;
@@ -30,34 +32,112 @@ class _DepositFormState extends ConsumerState<DepositForm> {
     FocusScope.of(context).unfocus();
 
     if (_formKey.currentState!.validate()) {
+      // 1. Capture the current amount BEFORE the deposit
+      // We need this so the Polling Service knows what "success" looks like (amount > startAmount)
+      final goalsList = ref.read(goalsProvider).value;
+      final currentGoal = goalsList?.firstWhere(
+        (g) => g.id == widget.goalId, 
+        orElse: () => throw Exception('Goal not found'),
+      );
+      // Determine the starting amount (handle nulls safely)
+      final double startAmount = (currentGoal?.currentAmount ?? 0).toDouble();
+
+      // 2. Send the STK Push Request
       final success = await ref
           .read(depositNotifierProvider.notifier)
           .depositToGoal(widget.goalId, _amountController.text.trim());
 
       if (success && mounted) {
+        // FIX: Capture the ScaffoldMessenger BEFORE we pop the context.
+        // Once we pop, 'context' might become detached or the widget unmounted.
+        final messenger = ScaffoldMessenger.of(context);
+        final amountText = _amountController.text; // Capture text for notification
+
+        // 3. Close the modal immediately so the user can see the dashboard
         Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
+
+        // 4. Show a "Waiting" SnackBar
+        // We set a long duration because we might poll for up to 60 seconds
+        messenger.showSnackBar(
           SnackBar(
             content: const Row(
               children: [
-                Icon(Icons.phone_android_rounded, color: Colors.white),
-                SizedBox(width: 12),
+                SizedBox(
+                  width: 20, 
+                  height: 20, 
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)
+                ),
+                SizedBox(width: 16),
                 Expanded(
                   child: Text(
-                    'STK push sent! Check your phone.',
+                    'STK push sent. Waiting for M-Pesa...',
                     style: TextStyle(fontWeight: FontWeight.w500),
                   ),
                 ),
               ],
             ),
-            backgroundColor: Colors.green[600],
+            backgroundColor: Colors.black87,
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
+            duration: const Duration(seconds: 60), // Keep it visible while polling
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             margin: const EdgeInsets.all(16),
           ),
         );
+
+        // 5. Start Polling (Wait for money to hit the db)
+        // This runs in the background. It returns TRUE if balance increased.
+        final isConfirmed = await ref
+            .read(paymentPollingProvider)
+            .waitForDepositConfirmation(widget.goalId, startAmount);
+
+        // 6. Handle the result
+        // FIX: Remove 'if (mounted)' check here. 
+        // Since we popped the widget at step 3, 'mounted' is ALWAYS false now.
+        // We must run this logic regardless to clean up the UI.
+        
+        // Remove the "Waiting" SnackBar immediately
+        messenger.hideCurrentSnackBar();
+
+        if (isConfirmed) {
+          // SUCCESS: Backend confirmed receipt!
+          messenger.showSnackBar(
+            SnackBar(
+              content: const Row(
+                children: [
+                  Icon(Icons.check_circle_rounded, color: Colors.white),
+                  SizedBox(width: 12),
+                  Text(
+                    'Payment received! Dashboard updated.',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+              backgroundColor: Colors.green[700],
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              margin: const EdgeInsets.all(16),
+            ),
+          );
+          
+          // Trigger the rich notification
+          ref.read(notificationServiceProvider).showDepositSuccess(
+            amountText, 
+            widget.goalName
+          );
+        } else {
+          // TIMEOUT: We stopped checking after 60s
+          messenger.showSnackBar(
+            SnackBar(
+              content: const Text(
+                'Still waiting for payment. Pull down to refresh later.',
+              ),
+              backgroundColor: Colors.orange[800],
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              margin: const EdgeInsets.all(16),
+            ),
+          );
+        }
       }
     }
   }
@@ -94,9 +174,9 @@ class _DepositFormState extends ConsumerState<DepositForm> {
             const SizedBox(height: 24),
 
             // 2. Header
-            Text(
+            const Text(
               'Add Deposit',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
                 color: Colors.black87,
@@ -120,7 +200,7 @@ class _DepositFormState extends ConsumerState<DepositForm> {
             Container(
               padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
               decoration: BoxDecoration(
-                color: const Color(0xFFEFF6FF), // Light blue background
+                color: const Color(0xFFEFF6FF),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: const Color(0xFFDBEAFE)),
               ),

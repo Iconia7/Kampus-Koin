@@ -15,8 +15,6 @@ class OrderState {
   OrderState({this.isLoading = false, this.errorMessage,this.createdOrder,});
 }
 
-// We use StateNotifierProvider because we'll have multiple loading states
-// We key it by product ID (int) to only show loading on the card we clicked
 final orderNotifierProvider =
     StateNotifierProvider<OrderNotifier, Map<int, OrderState>>((ref) {
       final apiService = ref.watch(apiServiceProvider);
@@ -29,37 +27,37 @@ class OrderNotifier extends StateNotifier<Map<int, OrderState>> {
 
   OrderNotifier(this._apiService, this._ref) : super({});
 
-  Future<Order?> unlockProduct(int productId) async {
+  // UPDATE: Accepts list of IDs now
+  Future<Order?> unlockProduct(int productId, {List<int>? goalIds}) async {
     state = { ...state, productId: OrderState(isLoading: true) };
     try {
-      final newOrder = await _apiService.unlockProduct(productId);
+      // Pass list to API
+      final newOrder = await _apiService.unlockProduct(productId, goalIds: goalIds);
       
       state = {
         ...state,
-        productId: OrderState(isLoading: false, createdOrder: newOrder) // <-- SET THE ORDER
+        productId: OrderState(isLoading: false, createdOrder: newOrder)
       };
       
-      // Refresh data
       _ref.invalidate(productsProvider);
       _ref.invalidate(userDataProvider);
-      _ref.invalidate(ordersProvider); // Invalidate profile orders too
+      _ref.invalidate(ordersProvider); 
       
-      return newOrder; // <-- RETURN THE ORDER
+      return newOrder; 
       
     } catch (e) {
       state = {
         ...state,
         productId: OrderState(isLoading: false, errorMessage: e.toString())
       };
-      return null; // <-- Return null on failure
+      return null;
     }
   }
 
-  // --- ADD A METHOD TO CLEAR THE STATE ---
   void clearOrderState(int productId) {
     state = {
       ...state,
-      productId: OrderState() // Reset to initial
+      productId: OrderState() 
     };
   }
 }

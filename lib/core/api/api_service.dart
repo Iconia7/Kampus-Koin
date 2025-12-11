@@ -1,5 +1,6 @@
 // lib/core/api/api_service.dart
 
+import 'dart:io'; // Import for File
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:kampus_koin_app/core/models/order_model.dart';
@@ -8,10 +9,11 @@ import 'package:kampus_koin_app/core/models/transaction_model.dart';
 import 'package:kampus_koin_app/core/models/user_model.dart';
 import 'package:kampus_koin_app/core/models/goal_model.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-const String baseUrl =
-    'https://backend-fj0v.onrender.com/api'; // 10.0.2.2 is the special IP for Android emulator to reach localhost
+// Helpful for content types if needed
 
-// Create a Riverpod provider for easy access to the ApiService
+const String baseUrl =
+    'https://backend-fj0v.onrender.com/api'; 
+
 final apiServiceProvider = Provider<ApiService>((ref) {
   return ApiService();
 });
@@ -24,14 +26,11 @@ class ApiService {
 
     _dio.interceptors.add(
       QueuedInterceptorsWrapper(
-
-        // --- 1. ATTACH TOKEN TO (ALMOST) EVERY REQUEST ---
         onRequest: (options, handler) async {
-          // Public routes that don't need a token
           if (options.path == '/token/' || 
               options.path == '/token/refresh/' || 
               options.path == '/users/register/') {
-            return handler.next(options); // Continue without a token
+            return handler.next(options);
           }
 
           final token = await _secureStorage.read(key: 'accessToken');
@@ -40,73 +39,52 @@ class ApiService {
           }
           return handler.next(options);
         },
-
-        // --- 2. HANDLE TOKEN EXPIRY (401 ERROR) ---
         onError: (e, handler) async {
           if (e.response?.statusCode == 401) {
             print("Token expired. Attempting refresh...");
-
-            // Get the old refresh token
             final refreshToken = await _secureStorage.read(key: 'refreshToken');
             if (refreshToken == null) {
-              // If we have no refresh token, log out
               handler.next(e);
-              // We should also tell the authNotifier to log out
               return;
             }
 
             try {
-              // --- 3. REQUEST NEW TOKENS ---
               final response = await _dio.post(
                 '/token/refresh/',
                 data: {'refresh': refreshToken},
               );
 
               if (response.statusCode == 200) {
-                // Successfully got new tokens
                 final newAccessToken = response.data['access'];
-
-                // Save new token
                 await _secureStorage.write(key: 'accessToken', value: newAccessToken);
-
-                // --- 4. RETRY THE ORIGINAL, FAILED REQUEST ---
-                // Update the request header with the new token
                 e.requestOptions.headers['Authorization'] = 'Bearer $newAccessToken';
-
-                // Re-send the original request
                 final retriedResponse = await _dio.fetch(e.requestOptions);
                 return handler.resolve(retriedResponse);
               }
             } on DioException {
-              // If the refresh token is also invalid, we must log out
               print("Refresh token is invalid. Logging out.");
               await _secureStorage.deleteAll();
-              // We should tell the authNotifier to log out
-              // This is tricky from here, the router's redirect will handle it
             }
           }
-          return handler.next(e); // Pass on other errors
+          return handler.next(e);
         },
       ),
     );
   }
-  // --- AUTH METHODS ---
 
-  // Method to handle user login
+  // --- METHODS ---
+
   Future<Map<String, dynamic>> login(String email, String password) async {
     try {
       final response = await _dio.post(
-        '/token/', // Endpoint for getting JWT tokens
+        '/token/', 
         data: {'email': email, 'password': password},
       );
-      // Assuming the response body contains 'access' and 'refresh' tokens
       return response.data;
     } on DioException catch (e) {
-      // Handle API errors (like 400 Bad Request, 500 Server Error)
       print('Dio login error: ${e.response?.data}');
-      rethrow; // Rethrow to let the calling code handle UI feedback
+      rethrow;
     } catch (e) {
-      // Handle other errors (like network issues)
       print('General login error: $e');
       rethrow;
     }
@@ -114,9 +92,7 @@ class ApiService {
 
   Future<void> deleteGoal(int goalId) async {
     try {
-      // Our interceptor will handle the auth token
       await _dio.delete('/finance/goals/$goalId/');
-      // A successful 204 No Content response won't return data
     } on DioException catch (e) {
       print('Dio deleteGoal error: ${e.response?.data}');
       rethrow;
@@ -129,7 +105,7 @@ class ApiService {
   Future<void> repayOrder(int orderId, String amount) async {
     try {
       final response = await _dio.post(
-        '/finance/repay/', // The new endpoint we created in Django
+        '/finance/repay/', 
         data: {'order_id': orderId, 'amount': amount},
       );
 
@@ -150,11 +126,8 @@ class ApiService {
 
   Future<List<Transaction>> getTransactions() async {
     try {
-      // Our interceptor handles the auth token
       final response = await _dio.get('/finance/transactions/');
       final List<dynamic> data = response.data;
-
-      // Map the list of JSON objects to a List<Transaction>
       return data.map((json) => Transaction.fromJson(json)).toList();
     } on DioException catch (e) {
       print('Dio getTransactions error: ${e.response?.data}');
@@ -169,8 +142,6 @@ class ApiService {
     try {
       final response = await _dio.get('/finance/orders/');
       final List<dynamic> data = response.data;
-
-      // Map the list of JSON objects to a List<Order>
       return data.map((json) => Order.fromJson(json)).toList();
     } on DioException catch (e) {
       print('Dio getOrders error: ${e.response?.data}');
@@ -181,13 +152,9 @@ class ApiService {
     }
   }
 
-  // Method to get the current user's profile (We'll implement this later)
   Future<User> getCurrentUser() async {
     try {
       final response = await _dio.get('/users/me/');
-      // The interceptor automatically added the token for us!
-
-      // Deserialize the JSON response into our User model
       return User.fromJson(response.data);
     } on DioException catch (e) {
       print('Dio getCurrentUser error: ${e.response?.data}');
@@ -201,11 +168,7 @@ class ApiService {
   Future<List<Goal>> getSavingsGoals() async {
     try {
       final response = await _dio.get('/finance/goals/');
-      print('DEBUG: Goals response: ${response.data}');
-      // The response.data is a List of JSON objects
       final List<dynamic> data = response.data;
-
-      // Map the list of JSON objects to a List<Goal>
       return data.map((json) => Goal.fromJson(json)).toList();
     } on DioException catch (e) {
       print('Dio getSavingsGoals error: ${e.response?.data}');
@@ -219,10 +182,9 @@ class ApiService {
   Future<Goal> createGoal(String name, String targetAmount) async {
     try {
       final response = await _dio.post(
-        '/finance/goals/', // Our ListCreate endpoint
+        '/finance/goals/',
         data: {'name': name, 'target_amount': targetAmount},
       );
-      // Return the new goal from the response
       return Goal.fromJson(response.data);
     } on DioException catch (e) {
       print('Dio createGoal error: ${e.response?.data}');
@@ -235,11 +197,8 @@ class ApiService {
 
   Future<List<Product>> getProducts() async {
     try {
-      // This endpoint is protected, but our interceptor handles the token
       final response = await _dio.get('/finance/products/');
       final List<dynamic> data = response.data;
-
-      // Map the list of JSON objects to a List<Product>
       return data.map((json) => Product.fromJson(json)).toList();
     } on DioException catch (e) {
       print('Dio getProducts error: ${e.response?.data}');
@@ -250,20 +209,19 @@ class ApiService {
     }
   }
 
-  Future<Order> unlockProduct(int productId) async {
+  Future<Order> unlockProduct(int productId, {List<int>? goalIds}) async {
     try {
       final response = await _dio.post(
         '/finance/orders/unlock/',
-        data: {'product_id': productId},
+        data: {
+          'product_id': productId,
+          if (goalIds != null && goalIds.isNotEmpty) 'goal_ids': goalIds, 
+        },
       );
-      // The interceptor handles the auth token
       return Order.fromJson(response.data);
     } on DioException catch (e) {
       print('Dio unlockProduct error: ${e.response?.data}');
-      // --- THIS IS THE FIX ---
-      // Safely check if the response data is a Map and contains the key
       if (e.response?.data is Map && (e.response!.data as Map).containsKey('detail')) {
-        // If it's a 400 with a "detail" key (like "Koin score too low")
         throw Exception(e.response!.data['detail']);}
         throw Exception('Failed to unlock product. Please try again.');
     } catch (e) {
@@ -272,15 +230,57 @@ class ApiService {
     }
   }
 
-  Future<User> updateProfile({String? name, String? phoneNumber}) async {
+  Future<Goal> getGoalDetails(int goalId) async {
     try {
+      final response = await _dio.get('/finance/goals/$goalId/');
+      return Goal.fromJson(response.data);
+    } on DioException catch (e) {
+      throw Exception(e.response?.data['detail'] ?? 'Failed to fetch goal details');
+    }
+  }
+
+  Future<Order> getOrderDetails(int orderId) async {
+    try {
+      final response = await _dio.get('/finance/orders/$orderId/');
+      return Order.fromJson(response.data);
+    } on DioException catch (e) {
+      throw Exception(e.response?.data['detail'] ?? 'Failed to fetch order details');
+    }
+  }
+
+  Future<void> updateFcmToken(String token) async {
+    try {
+      await _dio.post(
+        '/finance/users/fcm-token/', 
+        data: {'fcm_token': token}
+      );
+    } on DioException catch (e) {
+      throw e; 
+    }
+  }
+
+  // UPDATE: Support File Upload with FormData
+  Future<User> updateProfile({String? name, String? phoneNumber, File? profileImage}) async {
+    try {
+      // 1. Create FormData
+      final formData = FormData.fromMap({
+        if (name != null && name.isNotEmpty) 'name': name,
+        if (phoneNumber != null && phoneNumber.isNotEmpty) 'phone_number': phoneNumber,
+        // Add file if present
+        if (profileImage != null) 
+          'profile_picture': await MultipartFile.fromFile(
+            profileImage.path,
+            filename: profileImage.path.split('/').last,
+          ),
+      });
+
+      // 2. Send PATCH request with FormData
       final response = await _dio.patch(
         '/users/me/',
-        data: {
-          if (name != null) 'name': name,
-          if (phoneNumber != null) 'phone_number': phoneNumber,
-        },
+        data: formData,
+        // Dio automatically sets 'Content-Type: multipart/form-data' when FormData is used
       );
+      
       return User.fromJson(response.data);
     } on DioException catch (e) {
       print('Dio updateProfile error: ${e.response?.data}');
@@ -293,25 +293,18 @@ class ApiService {
 
   Future<void> depositToGoal(int goalId, String amount) async {
     try {
-      // Our interceptor will handle the auth token
       final response = await _dio.post(
         '/finance/deposit/',
         data: {'goal_id': goalId, 'amount': amount},
       );
 
-      // Check for M-Pesa's success response
       if (response.data['message'] !=
           'STK push initiated successfully. Please enter your PIN.') {
-        // If the backend returned an error (e.g., M-Pesa is down)
         throw Exception('Failed to initiate STK push.');
       }
-      // If successful, the backend returns a 200 OK
-      // The actual database update happens via the callback.
     } on DioException catch (e) {
-      print('Dio depositToGoal error: ${e.response?.data}');
       throw Exception(e.response?.data['error'] ?? 'Failed to start deposit.');
     } catch (e) {
-      print('General depositToGoal error: $e');
       rethrow;
     }
   }
@@ -325,7 +318,7 @@ class ApiService {
   }) async {
     try {
       final response = await _dio.post(
-        '/users/register/', // Your Django registration endpoint
+        '/users/register/', 
         data: {
           'name': name,
           'email': email,
@@ -334,13 +327,10 @@ class ApiService {
           'student_id': admno,
         },
       );
-      // If successful, Django returns the new User object
       return User.fromJson(response.data);
     } on DioException catch (e) {
-      // Handle errors from Django (like "email already in use")
       if (e.response?.data is Map) {
         final errors = e.response!.data as Map;
-        // Find the first error and throw it
         if (errors.containsKey('email')) {
           throw Exception(errors['email'][0].toString());
         }
@@ -353,6 +343,4 @@ class ApiService {
       throw Exception('An unknown error occurred.');
     }
   }
-
-  // --- Add methods for Goals, Products, Orders later ---
 }

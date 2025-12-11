@@ -1,8 +1,10 @@
 // lib/features/profile/screens/edit_profile_screen.dart
 
+import 'dart:io'; // Import for File
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart'; // Import Image Picker
 import 'package:kampus_koin_app/core/api/api_service.dart';
 import 'package:kampus_koin_app/features/home/providers/user_data_provider.dart';
 
@@ -15,18 +17,21 @@ class EditProfileScreen extends ConsumerStatefulWidget {
 
 class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
+  
+  // Controllers
   late TextEditingController _nameController;
   late TextEditingController _phoneController;
+  
+  // State
   bool _isLoading = false;
+  bool _isDataInitialized = false; // Flag to init controllers only once
+  File? _selectedImageFile; // Holds the locally picked image
 
   @override
   void initState() {
     super.initState();
-    // Initialize with current user data or empty strings to avoid null errors
-    final userAsync = ref.read(userDataProvider);
-    final user = userAsync.value;
-    _nameController = TextEditingController(text: user?.name ?? '');
-    _phoneController = TextEditingController(text: user?.phoneNumber ?? '');
+    _nameController = TextEditingController();
+    _phoneController = TextEditingController();
   }
 
   @override
@@ -36,21 +41,33 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     super.dispose();
   }
 
+  // --- Image Picker Logic ---
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+
+    if (pickedFile != null) {
+      setState(() {
+        _selectedImageFile = File(pickedFile.path);
+      });
+    }
+  }
+
   Future<void> _saveProfile() async {
     if (!_formKey.currentState!.validate()) return;
 
-    // Remove focus to hide keyboard
     FocusScope.of(context).unfocus();
-
     setState(() => _isLoading = true);
 
     try {
+      // Pass the selected file to the API service
       await ref.read(apiServiceProvider).updateProfile(
             name: _nameController.text.trim(),
             phoneNumber: _phoneController.text.trim(),
+            profileImage: _selectedImageFile, 
           );
       
-      // Refresh the user provider to show new data everywhere
+      // Refresh the user provider
       ref.invalidate(userDataProvider);
       
       if (mounted) {
@@ -81,9 +98,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final userAsync = ref.watch(userDataProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA), // Light grey background
+      backgroundColor: const Color(0xFFF5F7FA),
       appBar: AppBar(
         title: const Text(
           'Edit Profile',
@@ -97,150 +115,169 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
           onPressed: () => context.pop(),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        physics: const BouncingScrollPhysics(),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              // --- Avatar Section ---
-              Center(
-                child: Stack(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 20,
-                            offset: const Offset(0, 10),
-                          ),
-                        ],
-                      ),
-                      child: CircleAvatar(
-                        radius: 60,
-                        backgroundColor: colorScheme.primary.withOpacity(0.1),
-                        child: Icon(
-                          Icons.person_rounded,
-                          size: 60,
-                          color: colorScheme.primary,
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      bottom: 0,
-                      right: 0,
-                      child: GestureDetector(
-                        onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Image upload coming soon!')),
-                          );
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.all(10),
+      // Use .when to ensure data is loaded before filling the form
+      body: userAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (err, stack) => Center(child: Text('Error loading profile: $err')),
+        data: (user) {
+          // Initialize controllers only once when data first arrives
+          if (!_isDataInitialized) {
+            _nameController.text = user.name;
+            _phoneController.text = user.phoneNumber!;
+            _isDataInitialized = true;
+          }
+
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            physics: const BouncingScrollPhysics(),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                children: [
+                  // --- Avatar Section ---
+                  Center(
+                    child: Stack(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(4),
                           decoration: BoxDecoration(
-                            color: colorScheme.primary,
                             shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 3),
-                          ),
-                          child: const Icon(
-                            Icons.camera_alt_rounded,
                             color: Colors.white,
-                            size: 20,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.1),
+                                blurRadius: 20,
+                                offset: const Offset(0, 10),
+                              ),
+                            ],
+                          ),
+                          child: CircleAvatar(
+                            radius: 60,
+                            backgroundColor: colorScheme.primary.withOpacity(0.1),
+                            // LOGIC: Show File Image -> OR Network Image -> OR Default Icon
+                            backgroundImage: _selectedImageFile != null
+                                ? FileImage(_selectedImageFile!) as ImageProvider
+                                : (user.profilePicture != null && user.profilePicture!.isNotEmpty)
+                                    ? NetworkImage(user.profilePicture!) // Ensure your backend sends full URL
+                                    : null,
+                            child: (_selectedImageFile == null && (user.profilePicture == null || user.profilePicture!.isEmpty))
+                                ? Icon(Icons.person_rounded, size: 60, color: colorScheme.primary)
+                                : null,
                           ),
                         ),
-                      ),
+                        
+                        // Camera Button
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: GestureDetector(
+                            onTap: _pickImage, // Call Pick Image
+                            child: Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: colorScheme.primary,
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white, width: 3),
+                              ),
+                              child: const Icon(
+                                Icons.camera_alt_rounded,
+                                color: Colors.white,
+                                size: 20,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Change Profile Photo',
-                style: TextStyle(
-                  color: colorScheme.primary,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
-                ),
-              ),
-              
-              const SizedBox(height: 40),
-
-              // --- Form Fields ---
-              Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 15,
-                      offset: const Offset(0, 5),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    _buildModernTextField(
-                      controller: _nameController,
-                      label: 'Full Name',
-                      hint: 'John Doe',
-                      icon: Icons.person_outline_rounded,
-                      colorScheme: colorScheme,
-                      validator: (v) => (v == null || v.isEmpty) ? 'Name cannot be empty' : null,
-                    ),
-                    const SizedBox(height: 24),
-                    _buildModernTextField(
-                      controller: _phoneController,
-                      label: 'Phone Number',
-                      hint: '0712345678',
-                      icon: Icons.phone_outlined,
-                      keyboardType: TextInputType.phone,
-                      colorScheme: colorScheme,
-                      validator: (v) => (v == null || v.length < 10) ? 'Invalid phone number' : null,
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 40),
-
-              // --- Save Button ---
-              SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _saveProfile,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: colorScheme.primary,
-                    foregroundColor: Colors.white,
-                    elevation: 4,
-                    shadowColor: colorScheme.primary.withOpacity(0.4),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    disabledBackgroundColor: Colors.grey[300],
                   ),
-                  child: _isLoading 
-                    ? const SizedBox(
-                        height: 24, 
-                        width: 24, 
-                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
-                      )
-                    : const Text(
-                        'Save Changes', 
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)
+                  const SizedBox(height: 16),
+                  GestureDetector(
+                    onTap: _pickImage,
+                    child: Text(
+                      'Change Profile Photo',
+                      style: TextStyle(
+                        color: colorScheme.primary,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
                       ),
-                ),
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 40),
+
+                  // --- Form Fields ---
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 15,
+                          offset: const Offset(0, 5),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        _buildModernTextField(
+                          controller: _nameController,
+                          label: 'Full Name',
+                          hint: 'John Doe',
+                          icon: Icons.person_outline_rounded,
+                          colorScheme: colorScheme,
+                          validator: (v) => (v == null || v.isEmpty) ? 'Name cannot be empty' : null,
+                        ),
+                        const SizedBox(height: 24),
+                        _buildModernTextField(
+                          controller: _phoneController,
+                          label: 'Phone Number',
+                          hint: '0712345678',
+                          icon: Icons.phone_outlined,
+                          keyboardType: TextInputType.phone,
+                          colorScheme: colorScheme,
+                          validator: (v) => (v == null || v.length < 10) ? 'Invalid phone number' : null,
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 40),
+
+                  // --- Save Button ---
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: ElevatedButton(
+                      onPressed: _isLoading ? null : _saveProfile,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: colorScheme.primary,
+                        foregroundColor: Colors.white,
+                        elevation: 4,
+                        shadowColor: colorScheme.primary.withOpacity(0.4),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        disabledBackgroundColor: Colors.grey[300],
+                      ),
+                      child: _isLoading 
+                        ? const SizedBox(
+                            height: 24, 
+                            width: 24, 
+                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
+                          )
+                        : const Text(
+                            'Save Changes', 
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)
+                          ),
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       ),
     );
   }

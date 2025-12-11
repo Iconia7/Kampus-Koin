@@ -11,18 +11,44 @@ import 'package:kampus_koin_app/features/profile/widgets/repayment_form.dart';
 import '../providers/orders_provider.dart';
 import '../providers/transactions_provider.dart';
 
-class ProfileScreen extends ConsumerWidget {
+class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends ConsumerState<ProfileScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _refreshData();
+    });
+  }
+
+  Future<void> _refreshData() async {
+    try {
+      // Future.wait keeps the spinner active until all 3 requests finish
+      await Future.wait([
+        ref.refresh(userDataProvider.future),
+        ref.refresh(ordersProvider.future),
+        ref.refresh(transactionsProvider.future),
+      ]);
+    } catch (e) {
+      debugPrint('Refresh error: $e');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final userData = ref.watch(userDataProvider);
     final ordersData = ref.watch(ordersProvider);
     final transactionsData = ref.watch(transactionsProvider);
     final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA), // Consistent light grey background
+      backgroundColor: const Color(0xFFF5F7FA),
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: const Text(
@@ -59,15 +85,16 @@ class ProfileScreen extends ConsumerWidget {
         ],
       ),
       body: RefreshIndicator(
-        onRefresh: () async {
-          ref.invalidate(userDataProvider);
-          ref.invalidate(ordersProvider);
-          ref.invalidate(transactionsProvider);
-        },
+        onRefresh: _refreshData,
+        color: colorScheme.primary,
+        backgroundColor: Colors.white,
         child: CustomScrollView(
-          physics: const BouncingScrollPhysics(),
+          // CRITICAL FIX: Ensures pull-to-refresh works even if history is empty
+          physics: const AlwaysScrollableScrollPhysics(
+             parent: BouncingScrollPhysics(),
+          ),
           slivers: [
-            // --- User Header Section ---
+            // ... User Header Section ...
             SliverToBoxAdapter(
               child: userData.when(
                 loading: () => const SizedBox(
@@ -82,14 +109,14 @@ class ProfileScreen extends ConsumerWidget {
                 data: (user) => Stack(
                   alignment: Alignment.center,
                   children: [
-                    // 1. Gradient Background
+                    // Gradient Background
                     Container(
                       height: 360,
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
                             colorScheme.primary,
-                            const Color(0xFF4A00E0), // Deep blue/purple
+                            colorScheme.secondary,
                           ],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
@@ -108,7 +135,7 @@ class ProfileScreen extends ConsumerWidget {
                       ),
                     ),
                     
-                    // 2. Decorative Circles
+                    // Decorative Circles
                     Positioned(
                       top: -60,
                       left: -40,
@@ -120,7 +147,7 @@ class ProfileScreen extends ConsumerWidget {
                       child: CircleAvatar(radius: 60, backgroundColor: Colors.white.withOpacity(0.05)),
                     ),
 
-                    // 3. User Info
+                    // User Info
                     Positioned(
                       bottom: 40,
                       left: 0,
@@ -144,14 +171,20 @@ class ProfileScreen extends ConsumerWidget {
                             child: CircleAvatar(
                               radius: 50,
                               backgroundColor: Colors.white,
-                              child: Text(
-                                user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
-                                style: TextStyle(
-                                  fontSize: 40,
-                                  fontWeight: FontWeight.bold,
-                                  color: colorScheme.primary,
-                                ),
-                              ),
+                              // FIX: Show Network Image if available, otherwise show Initial
+                              backgroundImage: (user.profilePicture != null && user.profilePicture!.isNotEmpty)
+                                  ? NetworkImage(user.profilePicture!)
+                                  : null,
+                              child: (user.profilePicture == null || user.profilePicture!.isEmpty)
+                                  ? Text(
+                                      user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
+                                      style: TextStyle(
+                                        fontSize: 40,
+                                        fontWeight: FontWeight.bold,
+                                        color: colorScheme.primary,
+                                      ),
+                                    )
+                                  : null,
                             ),
                           ),
                           const SizedBox(height: 16),

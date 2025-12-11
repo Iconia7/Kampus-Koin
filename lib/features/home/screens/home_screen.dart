@@ -3,9 +3,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kampus_koin_app/core/models/goal_model.dart';
+import 'package:kampus_koin_app/core/services/notification_service.dart'; // Import Notification Service
 import 'package:kampus_koin_app/features/goals/widgets/deposit_form.dart';
 import 'package:kampus_koin_app/features/home/providers/total_savings_provider.dart';
 import 'package:kampus_koin_app/features/home/providers/user_data_provider.dart';
+import 'package:kampus_koin_app/features/marketplace/providers/products_provider.dart'; // Import Products Provider
 import 'package:kampus_koin_app/features/profile/providers/transactions_provider.dart';
 import '../../auth/providers/auth_notifier.dart';
 import 'package:kampus_koin_app/features/home/providers/goals_provider.dart';
@@ -25,10 +27,9 @@ class HomeScreen extends ConsumerWidget {
     final transactionsData = ref.watch(transactionsProvider);
     final totalSavings = ref.watch(totalSavingsProvider);
     final colorScheme = Theme.of(context).colorScheme;
-    final currencyFormatter =
-        NumberFormat.currency(locale: 'en_KE', symbol: 'KES ');
+    final currencyFormatter = NumberFormat.currency(locale: 'en_KE', symbol: 'KES ');
 
-    // Listen for errors
+    // 1. LISTEN FOR ERRORS
     ref.listen<GoalCreationState>(goalNotifierProvider, (prev, next) {
       if (next.errorMessage != null) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -41,8 +42,36 @@ class HomeScreen extends ConsumerWidget {
       }
     });
 
+    // 2. LISTEN FOR SCORE INCREASES (Unlock Logic)
+    ref.listen(userDataProvider, (previous, next) {
+      // Only proceed if we have both previous and next data
+      if (previous?.hasValue == true && next.hasValue) {
+        final oldScore = previous!.value!.koinScore;
+        final newScore = next.value!.koinScore;
+
+        // If score increased (e.g. after deposit or repayment)
+        if (newScore > oldScore) {
+          // Get the list of products (without triggering a rebuild)
+          final products = ref.read(productsProvider).valueOrNull ?? [];
+
+          for (var product in products) {
+            // LOGIC: If I couldn't afford it before (oldScore < req)
+            // BUT I can afford it now (newScore >= req)
+            // AND I haven't already bought it...
+            if (!product.isAlreadyUnlocked && 
+                oldScore < product.requiredKoinScore && 
+                newScore >= product.requiredKoinScore) {
+              
+              // Trigger the notification
+              ref.read(notificationServiceProvider).showUnlockAlert(product.name);
+            }
+          }
+        }
+      }
+    });
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA), // Light grey background for contrast
+      backgroundColor: const Color(0xFFF5F7FA),
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: const Text('Dashboard',
@@ -66,13 +95,21 @@ class HomeScreen extends ConsumerWidget {
         ],
       ),
       body: RefreshIndicator(
+        color: colorScheme.primary,
+        backgroundColor: Colors.white,
         onRefresh: () async {
-          ref.invalidate(userDataProvider);
-          ref.invalidate(goalsProvider);
-          ref.invalidate(transactionsProvider);
+          // Use Future.wait to keep spinner visible until all load
+          await Future.wait([
+            ref.refresh(userDataProvider.future),
+            ref.refresh(goalsProvider.future),
+            ref.refresh(transactionsProvider.future),
+            ref.refresh(productsProvider.future), // Refresh products too just in case
+          ]);
         },
         child: CustomScrollView(
-          physics: const BouncingScrollPhysics(), // Smoother scrolling
+          physics: const AlwaysScrollableScrollPhysics(
+            parent: BouncingScrollPhysics(),
+          ), 
           slivers: [
             SliverToBoxAdapter(
               child: userData.when(
@@ -85,14 +122,14 @@ class HomeScreen extends ConsumerWidget {
                 data: (user) {
                   return Stack(
                     children: [
-                      // 1. Modern Gradient Background
+                      // 1. Gradient Background
                       Container(
                         height: 420,
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             colors: [
                               colorScheme.primary,
-                              const Color(0xFF4A00E0), // Deep Purple/Blue hint
+                              colorScheme.secondary, 
                             ],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
@@ -145,7 +182,7 @@ class HomeScreen extends ConsumerWidget {
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      user.name.split(' ')[0], // First name only
+                                      user.name.split(' ')[0], 
                                       style: const TextStyle(
                                         color: Colors.white,
                                         fontSize: 28,
@@ -242,7 +279,7 @@ class HomeScreen extends ConsumerWidget {
                             
                             const SizedBox(height: 24),
 
-                            // Chart with container background
+                            // Chart
                             Container(
                               decoration: BoxDecoration(
                                 color: Colors.white,
@@ -294,7 +331,7 @@ class HomeScreen extends ConsumerWidget {
                         ),
                         loading: () => const SizedBox.shrink(),
                         error: (_,__) => const SizedBox.shrink(),
-                     )
+                      )
                   ],
                 ),
               ),
@@ -340,9 +377,7 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 }
-// ... (GoalListItem remains the same as your previous version)
 
-// --- UPDATED WIDGET: GoalListItem (Now a ConsumerWidget) ---
 // --- NEW & IMPROVED GOAL CARD ---
 class GoalListItem extends ConsumerWidget {
   final Goal goal;
@@ -511,8 +546,8 @@ class GoalListItem extends ConsumerWidget {
                   ),
                 )
               : InkWell(
-                  onTap: () {
-                    showModalBottomSheet(
+                  onTap: () async {
+                    await showModalBottomSheet(
                       context: context,
                       isScrollControlled: true,
                       backgroundColor: Colors.transparent,
@@ -524,6 +559,10 @@ class GoalListItem extends ConsumerWidget {
                         child: DepositForm(goalId: goal.id, goalName: goal.name),
                       ),
                     );
+                    // Refresh data after modal closes
+                    ref.invalidate(userDataProvider);
+                    ref.invalidate(goalsProvider);
+                    ref.invalidate(transactionsProvider);
                   },
                   borderRadius: const BorderRadius.vertical(bottom: Radius.circular(24)),
                   child: Container(
